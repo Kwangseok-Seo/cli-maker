@@ -16,6 +16,7 @@ os.Args[1]  // 사용자가 친 첫 인자
 ## 겪은 함정
 
 - 인자 없이 `os.Args[1]` → 런타임 패닉 (index out of range). 인덱스 전 길이 확인이 필요 → [[cobra]] 도입 동기.
+- **해소**: [[cobra]] 의 `Args: cobra.ExactArgs(n)` 가 인덱싱 전에 개수를 검증 → panic 대신 친절한 에러. `Run` 의 `args[0]` 은 그 뒤라 안전.
 
 ## 관련
 
