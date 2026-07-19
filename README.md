@@ -44,6 +44,8 @@ Go 1.26+ 필요.
 | **M7** | 테스트 | table-driven test, httptest |
 | 이후 | `generate` (코드 생성) | text/template |
 
+> 각 마일스톤에서 쌓은 이론·문법·겪은 함정은 [`docs/learn/`](docs/learn/) 에 개념별 지식베이스로 정리합니다 — "무엇을 배웠나"의 실증.
+
 ## 라이선스
 
 MIT — [LICENSE](LICENSE).
