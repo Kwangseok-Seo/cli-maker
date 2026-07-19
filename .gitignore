@@ -1,0 +1,18 @@
+# 컴파일된 바이너리
+/cli-maker
+/cli-maker.exe
+
+# 테스트 / 커버리지 산출물
+*.test
+*.out
+coverage.*
+
+# Go 워크스페이스 파일
+go.work
+go.work.sum
+
+# 에디터 / OS
+.idea/
+.vscode/
+.DS_Store
+*.swp

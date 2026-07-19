@@ -1,0 +1,28 @@
+# 초안 스키마 스케치 — 아직 코드로 소비되지 않는다. 스키마는 M1~M2 에서 확정한다.
+# Manifest: 하나의 web API 를 CLI 로 노출하기 위한 정의.
+name: petstore
+baseUrl: https://petstore3.swagger.io/api/v3
+
+# 인증: 환경변수에서 토큰을 읽는다 (매니페스트에 비밀을 담지 않는다).
+auth:
+  type: bearer
+  env: PETSTORE_TOKEN
+
+# Command: 유저가 CLI 에서 호출할 동작.
+#   예) cli-maker petstore getPetById --petId 10
+commands:
+  getPetById:
+    method: GET
+    path: /pet/{petId}
+    params:
+      petId:
+        in: path
+        type: int
+        required: true
+  findByStatus:
+    method: GET
+    path: /pet/findByStatus
+    params:
+      status:
+        in: query
+        type: string
