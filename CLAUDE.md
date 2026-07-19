@@ -14,7 +14,7 @@
 - **매 단계마다 이론 학습 대화를 먼저.** 새 기능/개념을 구현하기 전에 관련 Go·프레임워크 이론(왜 이렇게 하는지, idiomatic 한 이유)을 대화로 설명한다.
 - **덤프 금지, 공동 작성 지향.** 완성된 코드를 한 번에 쏟지 않는다. 가능하면 사용자가 이해하고 직접(또는 함께) 작성하도록 유도한다 — Socratic 하게.
 - **작은 단계로.** README 의 "학습 로드맵" 마일스톤 단위로 진행. 한 마일스톤 = 한 Go 개념 + 한 기능 조각.
-- **학습 노트 남기기.** 각 마일스톤을 마치면 `docs/learn/NN-*.md` 에 배운 이론·문법·명령·겪은 함정을 기록한다 (개념당 파일, knowledge base). 이 관행 자체가 goal 2 의 산출물이며 skill 승격 후보다.
+- **학습 위키 갱신.** 각 마일스톤마다 배운 개념을 `docs/learn/concepts/<개념>.md` (원자 페이지, `[[wikilink]]` ≥2, "겪은 함정" 포함)에 쓰고, `docs/learn/index.md` 색인과 `docs/learn/milestones/M*.md` 여정 로그를 갱신한다 (Karpathy LLM-wiki 하이브리드). 이 관행 자체가 goal 2 의 산출물이며 skill 승격 후보. 최종엔 이 위키를 HTML 로 변환(프로젝트 완성 후).
 - **패턴을 승격.** 반복되는 학습 패턴이 보이면 rule/지침/skill 후보로 제안한다 (부수 목표).
 - **정직하게.** "동작합니다" 대신 실제 input→output 을 보여준다 (전역 report-guideline).
 
@@ -46,7 +46,7 @@
 - **결정** → `docs/adr/NNNN-*.md` (Y-statement 1문단; 포맷은 전역 rule `adr-context-format`).
 - **용어** → `CONTEXT.md` (glossary 전용 — 규칙/결과/파라미터 넣지 않음).
 - **진행 상태·로드맵** → `README.md` 학습 로드맵.
-- **언어·도구 학습 지식** → `docs/learn/NN-*.md` (Go 문법·명령·함정. 도메인 용어(CONTEXT)·결정(ADR)과 구분되는 세 번째 축).
+- **언어·도구 학습 지식** → `docs/learn/` (`index.md` 색인 + `concepts/` 개념 위키 + `milestones/` 여정 로그. 도메인 용어(CONTEXT)·결정(ADR)과 구분되는 세 번째 축).
 
 ## Git
 
