@@ -15,6 +15,7 @@ cli-maker 를 만들며 쌓은 **Go·도구 지식**의 위키. 개념을 찾을
 - [[functions-as-values]] — 함수를 값으로, struct 칸에 담기
 - [[go-modules]] — `go.mod`/`go.sum`, direct/indirect, `go get`/`tidy`, semver
 - [[cobra]] — `cobra.Command` struct, 자동 `--help`
+- [[error-handling]] — 에러는 값, `if err != nil`, `os.Exit`
 - [[go-toolchain]] — `go run`/`build`/`fmt`/`vet`/`get` 명령
 
 ## 마일스톤 로그 (`milestones/`)
