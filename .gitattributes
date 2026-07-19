@@ -1,0 +1,11 @@
+# 저장소 내부 줄바꿈은 LF 로 정규화 (Windows 체크아웃 시 CRLF 경고 방지)
+* text=auto eol=lf
+
+# Go 소스·모듈 파일은 항상 LF
+*.go   text eol=lf
+go.mod text eol=lf
+go.sum text eol=lf
+
+# Windows 배치/스크립트가 생기면 CRLF 유지
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
