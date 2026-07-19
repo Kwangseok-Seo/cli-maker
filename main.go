@@ -17,5 +17,16 @@ func main() {
 		},
 	}
 
+	greetCmd := &cobra.Command{
+		Use:   "greet <이름>",
+		Short: "이름을 받아 인사한다",
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Println("안녕, " + args[0] + "!")
+		},
+	}
+
+	rootCmd.AddCommand(greetCmd)
+
 	rootCmd.Execute()
 }
