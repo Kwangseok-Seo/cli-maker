@@ -1,5 +1,6 @@
-# 초안 스키마 스케치 — 아직 코드로 소비되지 않는다. 스키마는 M1~M2 에서 확정한다.
-# Manifest: 하나의 web API 를 CLI 로 노출하기 위한 정의.
+# Manifest: 하나의 web API 를 CLI 로 노출하기 위한 정의. (스키마 = M2 확정)
+# 컬렉션(commands, params)은 name 필드를 가진 "순서 있는 리스트"다 — 이름을 키로 삼는 map 이 아니라.
+#   근거: --help 순서를 유저가 적은 대로 보존 + Command/Param 이 자기 이름을 품는 self-contained 객체.
 name: petstore
 baseUrl: https://petstore3.swagger.io/api/v3
 
@@ -11,18 +12,18 @@ auth:
 # Command: 유저가 CLI 에서 호출할 동작.
 #   예) cli-maker petstore getPetById --petId 10
 commands:
-  getPetById:
+  - name: getPetById
     method: GET
     path: /pet/{petId}
     params:
-      petId:
+      - name: petId
         in: path
         type: int
         required: true
-  findByStatus:
+  - name: findByStatus
     method: GET
     path: /pet/findByStatus
     params:
-      status:
+      - name: status
         in: query
         type: string

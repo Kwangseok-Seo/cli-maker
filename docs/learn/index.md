@@ -17,11 +17,16 @@ cli-maker 를 만들며 쌓은 **Go·도구 지식**의 위키. 개념을 찾을
 - [[cobra]] — `cobra.Command` struct, 자동 `--help`
 - [[error-handling]] — 에러는 값, `if err != nil`, `os.Exit`
 - [[go-toolchain]] — `go run`/`build`/`fmt`/`vet`/`get` 명령
+- [[file-io]] — `os.ReadFile`, 파일 통째로 `[]byte`
+- [[serialization]] — 마샬/언마샬, `yaml.Unmarshal(&m)`, decode-into 패턴
+- [[struct-tags]] — `yaml:"키"`, exported 필드, camelCase 함정
+- [[stdout-stderr]] — 데이터 vs 진단, `fmt.Fprintln(os.Stderr, …)`
 
 ## 마일스톤 로그 (`milestones/`)
 
 - [[M0]] — 프로젝트 골격 + Go 기초 warm-up
 - [[M1]] — cobra 루트 명령 + 첫 외부 의존성
+- [[M2]] — 매니페스트 파싱 (YAML → struct)
 
 ## 최종 산출물 (예정)
 

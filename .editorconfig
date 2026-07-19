@@ -1,0 +1,15 @@
+# 편집기 저장 시점부터 줄바꿈·인코딩을 강제 — .gitattributes(git 경계)와 짝을 이룬다.
+# VS Code 는 EditorConfig 확장이 있어야 이 파일을 따른다. GoLand/JetBrains 는 기본 지원.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.go]
+indent_style = tab
+
+[*.{bat,cmd}]
+end_of_line = crlf
