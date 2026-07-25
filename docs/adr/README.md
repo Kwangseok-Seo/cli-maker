@@ -10,3 +10,4 @@
 | [0004](0004-params-as-flags.md) | 모든 Param 은 flag 로 노출한다 | accepted |
 | [0005](0005-http-error-surface.md) | HTTP 4xx/5xx 는 본문을 내보낸 뒤 종료 코드 1 로 알린다 | accepted |
 | [0006](0006-missing-token-policy.md) | 토큰이 없으면 경고만 남기고 인증 없이 보낸다 | accepted |
+| [0007](0007-load-time-validation.md) | 매니페스트는 등록 전에 검증하고, 문제가 있으면 그 파일을 통째로 건너뛴다 | accepted |

@@ -1,10 +1,8 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/Kwangseok-Seo/cli-maker/internal/cli"
@@ -56,24 +54,8 @@ func main() {
 
 	rootCmd.AddCommand(parseCmd)
 
-	entries, err := os.ReadDir("apis")
-	if err != nil && !errors.Is(err, os.ErrNotExist) {
+	for _, err := range cli.LoadDir(rootCmd, "apis") {
 		fmt.Fprintln(os.Stderr, "cli-maker:", err)
-	}
-
-	for _, e := range entries {
-		if filepath.Ext(e.Name()) != ".yaml" {
-			continue
-		}
-		path := filepath.Join("apis", e.Name())
-
-		m, err := manifest.Load(path)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "cli-maker: %s 생략 (%v)\n", path, err)
-			continue
-		}
-
-		rootCmd.AddCommand(cli.Build(m))
 	}
 
 	if err := rootCmd.Execute(); err != nil {

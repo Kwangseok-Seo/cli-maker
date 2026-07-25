@@ -38,6 +38,17 @@ Param 은 모두 flag 로 드러나고(`--이름 값`), 본문은 stdout 으로�
 
 `apis/` 에 매니페스트 YAML 을 하나 더 떨어뜨리면 **재컴파일 없이** 새 API 명령이 생깁니다 ([ADR-0003](docs/adr/0003-dynamic-command-surface.md)).
 
+매니페스트는 명령으로 등록되기 전에 검증을 통과해야 합니다. 문제가 있으면 그 파일만 빠지고 나머지는 그대로 동작합니다 ([ADR-0007](docs/adr/0007-load-time-validation.md)).
+
+```
+$ cli-maker greet 철수
+cli-maker: apis\broken.yaml 생략
+baseURL "GET TT": scheme 이 http/https 가 아니다
+commands[1] "ping": method "get" 는 지원하지 않는다
+commands[2] "ping": 이름이 중복이다
+안녕, 철수!                       ← 다른 명령은 살아 있습니다
+```
+
 ## 개발
 
 - 빌드: `go build ./...`
@@ -58,8 +69,9 @@ Go 1.26+ 필요.
 | **M3** ✅ | 매니페스트→명령 동적 생성 | 클로저 캡처, 컴포지트 리터럴, 디렉토리 스캔 |
 | **M4** ✅ | 제네릭 HTTP 실행기 | net/http, io.Reader/Writer, defer, context |
 | **M5** ✅ | 인증·설정 (env 토큰) | os 패키지, 설정 우선순위 |
-| **M6** | 출력 포맷 (`--json`/`--compact`) | encoding/json, 인터페이스 |
-| **M7** | 테스트 | table-driven test, httptest |
+| **M6** ✅ | 매니페스트 검증 (등록 전에 막는다) | map(집합), `errors.Join` |
+| **M7** | 출력 포맷 (`--json`/`--compact`) | encoding/json, 인터페이스 |
+| **M8** | 테스트 | table-driven test, httptest |
 | 이후 | `generate` (코드 생성) | text/template |
 
 > 각 마일스톤에서 쌓은 이론·문법·겪은 함정은 [`docs/learn/`](docs/learn/) 에 개념별 지식베이스로 정리합니다 — "무엇을 배웠나"의 실증.
