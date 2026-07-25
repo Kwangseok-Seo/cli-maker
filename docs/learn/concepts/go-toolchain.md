@@ -7,7 +7,8 @@
 - `go run .` — 현재 패키지 컴파일 후 즉시 실행 (반복 루프용).
 - `go build ./...` — `./...` = 여기부터 모든 하위 패키지. 빌드 검증.
 - `gofmt -w .` — 표준 포맷 자동 정렬 (Go 는 포맷 강제).
-- `go vet ./...` — 흔한 실수 정적 검사.
+- `go vet ./...` — 흔한 실수 정적 검사. **`go build` 가 통과해도 따로 돌린다** — 버려진 `fmt.Errorf` 결과처럼 문법은 멀쩡하고 의미만 틀린 것을 잡는다 → [[unused-results]].
+- `go test ./...` — 테스트 실행. `-run <이름>` 으로 하나만, `-v` 로 `t.Logf` 까지 본다.
 - `go get <경로>` / `go mod tidy` — 의존성 → [[go-modules]].
 - `go list -m` — 현재 모듈 경로 출력.
 
@@ -18,4 +19,4 @@
 
 ## 관련
 
-[[packages-and-main]] · [[go-modules]] · [[errors-compile-vs-runtime]] · [[stdout-stderr]]
+[[packages-and-main]] · [[go-modules]] · [[errors-compile-vs-runtime]] · [[stdout-stderr]] · [[unused-results]]

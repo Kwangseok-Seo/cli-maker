@@ -55,10 +55,47 @@ cobra.EnableCommandSorting = false // 패키지 전역 — 명령 만들기 전�
 - 기본값 `true` 면 자식 명령이 **알파벳순**으로 재배열돼 매니페스트에 적은 순서가 사라진다(ADR-0002 의 근거와 충돌).
 - 전역 변수라 그룹만 따로 끌 수 없다 — root 목록도 등록 순이 된다(우리 명령이 앞, `help`/`completion` 이 뒤).
 
-## Run vs RunE
+## Run vs RunE (M4)
 
-- `RunE` 는 에러를 **반환**하면 cobra 가 `Error:` 접두 + 사용법 + 0 아닌 종료까지 처리한다. `Run` 은 반환할 수 없어 `os.Exit` 을 우리가 챙겨야 한다 → [[error-handling]].
+```go
+Run:  func(cmd *cobra.Command, args []string)          // 반환값 없음
+RunE: func(cmd *cobra.Command, args []string) error    // 에러를 올릴 수 있다
+```
+
+`RunE` 가 반환한 에러는 **`rootCmd.Execute()` 의 반환값으로 그대로 올라온다.** cobra 는 그것을 `Error: …` 로 stderr 에 찍어 주지만 **종료 코드는 건드리지 않는다** — 0 아닌 종료는 `main` 이 챙긴다:
+
+```go
+if err := rootCmd.Execute(); err != nil { os.Exit(1) }
+```
+
+그래서 `RunE` → `Execute()` → `os.Exit(1)` 이 하나의 통로다. cli-maker 는 이 통로 하나로 "본문은 stdout, 진단은 stderr, 실패는 exit 1"을 전부 처리한다 — `os.Stderr` 를 직접 건드리지 않아 [[io-reader-writer]] 로 열어 둔 테스트 가능성이 유지된다 → [[error-handling]].
+
+## SilenceUsage 는 RunE 안에서 켠다 (M4)
+
+에러를 반환하면 cobra 는 기본적으로 **사용법 전체를 덤프**한다. `| head` 로 파이프가 끊겼을 때도 도움말이 쏟아지는 건 소음이다. 그렇다고 명령에 `SilenceUsage = true` 를 박으면 정작 필요한 곳(인자를 틀렸을 때)까지 죽는다. 실측:
+
+| 설정 위치 | flag 누락 | 런타임 에러 |
+|---|---|---|
+| 없음(기본) | usage 나옴 ✓ | usage 덤프 ✗ |
+| `cmd.SilenceUsage = true` (명령에) | usage 사라짐 ✗ | usage 없음 ✓ |
+| **`RunE` 첫 줄에서** | usage 나옴 ✓ | usage 없음 ✓ |
+
+flag 파싱은 `RunE` **이전에** 끝나므로, `RunE` 안에서 켜면 그 경로에는 영향이 없다. (`SilenceErrors` 는 별개 — 그건 `Error:` 줄 자체를 지운다.)
+
+## 플래그 (M4)
+
+```go
+sub.Flags().String(p.Name, "", p.In+" - "+p.Type)  // 등록 (시작 시점)
+sub.MarkFlagRequired(p.Name)
+...
+cmd.Flags().GetString(p.Name)                       // 읽기 (Run 시점)
+```
+
+- `Flags()` 는 그 명령 전용, `PersistentFlags()` 는 자식까지 상속.
+- **등록과 읽기는 시점이 다르다.** 등록은 명령 트리를 세울 때, 읽기는 cobra 가 argv 를 파싱한 뒤. 그래서 `c.Params` 를 두 번 돈다.
+- 등록은 `&cobra.Command{...}` 리터럴 **밖**에서 — 리터럴은 표현식이라 `for` 를 품을 수 없다 → [[composite-literals]].
+- `MarkFlagRequired` 는 파싱 때 막아 줄 뿐 **`--help` 에는 표시되지 않는다.** 필수임을 보이려면 도움말 문자열에 직접 적어야 한다.
 
 ## 관련
 
-[[structs]] · [[pointers]] · [[functions-as-values]] · [[go-modules]] · [[closures]] · [[composite-literals]]
+[[structs]] · [[pointers]] · [[functions-as-values]] · [[go-modules]] · [[closures]] · [[composite-literals]] · [[context]] · [[error-handling]]

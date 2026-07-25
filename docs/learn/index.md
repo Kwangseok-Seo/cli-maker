@@ -23,6 +23,12 @@ cli-maker 를 만들며 쌓은 **Go·도구 지식**의 위키. 개념을 찾을
 - [[serialization]] — 마샬/언마샬, `yaml.Unmarshal(&m)`, decode-into 패턴
 - [[struct-tags]] — `yaml:"키"`, exported 필드, camelCase 함정
 - [[stdout-stderr]] — 데이터 vs 진단, `fmt.Fprintln(os.Stderr, …)`
+- [[net-http]] — 요청 생성/전송 분리, 상태 코드는 에러가 아니다
+- [[io-reader-writer]] — 메서드 하나짜리 인터페이스, `io.Copy` 의 32KB 버퍼
+- [[defer]] — 함수 끝에 예약, 수신자는 `defer` 시점에 평가
+- [[context]] — 취소·마감의 전파, `WithTimeout` + `defer cancel()`
+- [[url-encoding]] — 경로(`%20`)와 쿼리(`+`)는 규칙이 다르다
+- [[unused-results]] — 반환값을 버리면 조용히 아무 일도 안 일어난다
 
 ## 마일스톤 로그 (`milestones/`)
 
@@ -30,6 +36,7 @@ cli-maker 를 만들며 쌓은 **Go·도구 지식**의 위키. 개념을 찾을
 - [[M1]] — cobra 루트 명령 + 첫 외부 의존성
 - [[M2]] — 매니페스트 파싱 (YAML → struct)
 - [[M3]] — 매니페스트 → 명령 동적 생성
+- [[M4]] — 제네릭 HTTP 실행기 (첫 실제 API 호출)
 
 ## 최종 산출물 (예정)
 

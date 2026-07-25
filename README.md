@@ -13,7 +13,7 @@
 
 ## 상태
 
-M3 완료 — 매니페스트를 런타임에 읽어 서브커맨드를 만듭니다. 실제 HTTP 호출은 아직 없고(M4), 보낼 요청을 출력합니다.
+M4 완료 — 매니페스트로 만들어진 명령이 **실제 API 를 호출**합니다.
 
 ```
 $ cli-maker --help
@@ -22,14 +22,20 @@ Available Commands:
   parse       파일을 받아 parse 한다
   petstore    petstore API        ← apis/example.yaml 에서 생성된 명령
 
-$ cli-maker petstore
-Available Commands:
-  getPetById   GET /pet/{petId}
-  findByStatus GET /pet/findByStatus
+$ cli-maker petstore getPetById --help
+GET /pet/{petId}
+Flags:
+      --petId string   path - int
 
-$ cli-maker petstore getPetById
-GET https://petstore3.swagger.io/api/v3/pet/{petId}
+$ cli-maker petstore getPetById --petId 10
+{"id":10,"name":"Rufus","photoUrls":["example.com"],"tags":[]}
+
+$ cli-maker petstore getPetById --petId abc
+{"code":400,"message":"Input error: couldn't convert `abc` to type `class java.lang.Long`"}
+Error: HTTP 400 Bad Request        ← stderr, 종료 코드 1
 ```
+
+매니페스트의 Param 은 모두 flag 로 드러납니다(`--이름 값`). 본문은 stdout 으로만 나가므로 `| jq` 가 안전하고, 4xx/5xx 는 종료 코드 1 로 알립니다.
 
 `apis/` 에 매니페스트 YAML 을 하나 더 떨어뜨리면 **재컴파일 없이** 새 API 명령이 생깁니다 ([ADR-0003](docs/adr/0003-dynamic-command-surface.md)).
 
@@ -51,7 +57,7 @@ Go 1.26+ 필요.
 | **M1** ✅ | Cobra 루트 + 첫 서브커맨드 | 의존성 관리(go get/go.sum), 명령 트리, 인터페이스 |
 | **M2** ✅ | 매니페스트 파싱 (YAML→struct) | struct 태그, 언마샬, 에러 처리 |
 | **M3** ✅ | 매니페스트→명령 동적 생성 | 클로저 캡처, 컴포지트 리터럴, 디렉토리 스캔 |
-| **M4** | 제네릭 HTTP 실행기 | net/http, io.Reader/Writer, defer, context |
+| **M4** ✅ | 제네릭 HTTP 실행기 | net/http, io.Reader/Writer, defer, context |
 | **M5** | 인증·설정 (env 토큰) | os 패키지, 설정 우선순위 |
 | **M6** | 출력 포맷 (`--json`/`--compact`) | encoding/json, 인터페이스 |
 | **M7** | 테스트 | table-driven test, httptest |
