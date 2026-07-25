@@ -20,12 +20,14 @@ import (
 //  5. io.Copy(out, resp.Body) 로 본문을 흘려보낸다
 //
 // 상태코드(4xx/5xx) 면 본문을 내보낸 뒤 에러를 반환한다.
-func Execute(ctx context.Context, m *manifest.Manifest, c *manifest.Command, values map[string]string, out io.Writer) error {
+func Execute(ctx context.Context, m *manifest.Manifest, c *manifest.Command, values map[string]string, out, errOut io.Writer) error {
 	reqURL := BuildURL(m, c, values)
 	req, err := http.NewRequestWithContext(ctx, c.Method, reqURL, nil)
 	if err != nil {
 		return err
 	}
+
+	applyAuth(req, m.Auth, errOut)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

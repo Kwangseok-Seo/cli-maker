@@ -13,29 +13,28 @@
 
 ## 상태
 
-M4 완료 — 매니페스트로 만들어진 명령이 **실제 API 를 호출**합니다.
+M5 완료 — 매니페스트로 만들어진 명령이 **실제 API 를 호출**하고, **환경변수의 토큰으로 인증**합니다.
 
 ```
-$ cli-maker --help
+$ cli-maker gh --help
 Available Commands:
-  greet       이름을 받아 인사한다
-  parse       파일을 받아 parse 한다
-  petstore    petstore API        ← apis/example.yaml 에서 생성된 명령
+  whoami      GET /user
+  repo        GET /repos/{owner}/{repo}     ← apis/github.yaml 에서 생성된 명령
 
-$ cli-maker petstore getPetById --help
-GET /pet/{petId}
-Flags:
-      --petId string   path - int
+$ cli-maker gh whoami                       # 토큰 없이
+warning: GITHUB_TOKEN is not set — sending unauthenticated request    ← stderr
+{"message":"Requires authentication",...}
+Error: HTTP 401 Unauthorized                                          ← 종료 코드 1
 
-$ cli-maker petstore getPetById --petId 10
-{"id":10,"name":"Rufus","photoUrls":["example.com"],"tags":[]}
-
-$ cli-maker petstore getPetById --petId abc
-{"code":400,"message":"Input error: couldn't convert `abc` to type `class java.lang.Long`"}
-Error: HTTP 400 Bad Request        ← stderr, 종료 코드 1
+$ GITHUB_TOKEN=<진짜 토큰> cli-maker gh whoami
+{"login":"...","id":...}                                              ← 인증됨
 ```
 
-매니페스트의 Param 은 모두 flag 로 드러납니다(`--이름 값`). 본문은 stdout 으로만 나가므로 `| jq` 가 안전하고, 4xx/5xx 는 종료 코드 1 로 알립니다.
+매니페스트에는 **토큰이 아니라 어느 환경변수를 볼지**만 적습니다(`auth: {type: bearer, env: GITHUB_TOKEN}`). 토큰이 없으면 거부하지 않고 경고만 남기고 인증 없이 보냅니다 — 익명으로도 되는 엔드포인트를 막지 않기 위해서입니다([ADR-0006](docs/adr/0006-missing-token-policy.md)).
+
+Param 은 모두 flag 로 드러나고(`--이름 값`), 본문은 stdout 으로만 나가므로 `| jq` 가 안전하며, 4xx/5xx 는 종료 코드 1 로 알립니다.
+
+요청 타임아웃은 세 층에서 정해집니다 — `--timeout 5s` > `CLI_MAKER_TIMEOUT=60s` > 기본 30초.
 
 `apis/` 에 매니페스트 YAML 을 하나 더 떨어뜨리면 **재컴파일 없이** 새 API 명령이 생깁니다 ([ADR-0003](docs/adr/0003-dynamic-command-surface.md)).
 
@@ -58,7 +57,7 @@ Go 1.26+ 필요.
 | **M2** ✅ | 매니페스트 파싱 (YAML→struct) | struct 태그, 언마샬, 에러 처리 |
 | **M3** ✅ | 매니페스트→명령 동적 생성 | 클로저 캡처, 컴포지트 리터럴, 디렉토리 스캔 |
 | **M4** ✅ | 제네릭 HTTP 실행기 | net/http, io.Reader/Writer, defer, context |
-| **M5** | 인증·설정 (env 토큰) | os 패키지, 설정 우선순위 |
+| **M5** ✅ | 인증·설정 (env 토큰) | os 패키지, 설정 우선순위 |
 | **M6** | 출력 포맷 (`--json`/`--compact`) | encoding/json, 인터페이스 |
 | **M7** | 테스트 | table-driven test, httptest |
 | 이후 | `generate` (코드 생성) | text/template |

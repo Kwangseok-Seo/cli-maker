@@ -9,3 +9,4 @@
 | [0003](0003-dynamic-command-surface.md) | 동적 명령 표면: 매니페스트 하나 = 2단 그룹, apis/ 스캔으로 발견 | accepted |
 | [0004](0004-params-as-flags.md) | 모든 Param 은 flag 로 노출한다 | accepted |
 | [0005](0005-http-error-surface.md) | HTTP 4xx/5xx 는 본문을 내보낸 뒤 종료 코드 1 로 알린다 | accepted |
+| [0006](0006-missing-token-policy.md) | 토큰이 없으면 경고만 남기고 인증 없이 보낸다 | accepted |

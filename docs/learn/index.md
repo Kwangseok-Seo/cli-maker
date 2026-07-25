@@ -29,6 +29,10 @@ cli-maker 를 만들며 쌓은 **Go·도구 지식**의 위키. 개념을 찾을
 - [[context]] — 취소·마감의 전파, `WithTimeout` + `defer cancel()`
 - [[url-encoding]] — 경로(`%20`)와 쿼리(`+`)는 규칙이 다르다
 - [[unused-results]] — 반환값을 버리면 조용히 아무 일도 안 일어난다
+- [[environment-variables]] — `os.LookupEnv` 의 `ok`, 비밀은 매니페스트가 아니라 env 에
+- [[http-headers]] — `map[string][]string`, Set vs Add, 생성 뒤 전송 전
+- [[config-precedence]] — 좁은 수명이 이긴다, 기본값은 "안 줬다"를 지운다
+- [[error-wrapping]] — `%w` 는 감싸고 `%v` 는 납작하게, 진단은 출처를 말한다
 
 ## 마일스톤 로그 (`milestones/`)
 
@@ -37,6 +41,7 @@ cli-maker 를 만들며 쌓은 **Go·도구 지식**의 위키. 개념을 찾을
 - [[M2]] — 매니페스트 파싱 (YAML → struct)
 - [[M3]] — 매니페스트 → 명령 동적 생성
 - [[M4]] — 제네릭 HTTP 실행기 (첫 실제 API 호출)
+- [[M5]] — 인증과 설정 (env 토큰, 우선순위 사슬)
 
 ## 최종 산출물 (예정)
 

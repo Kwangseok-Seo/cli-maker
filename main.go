@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/Kwangseok-Seo/cli-maker/internal/cli"
 	"github.com/Kwangseok-Seo/cli-maker/internal/manifest"
@@ -33,6 +34,9 @@ func main() {
 			fmt.Println("안녕, " + args[0] + "!")
 		},
 	}
+
+	// 모든 API 명령이 공유하는 설정. env(CLI_MAKER_TIMEOUT)로도 줄 수 있다 — 우선순위는 internal/cli/timeout.go.
+	rootCmd.PersistentFlags().Duration(cli.TimeoutFlag, 30*time.Second, "요청 타임아웃 (env: CLI_MAKER_TIMEOUT)")
 
 	rootCmd.AddCommand(greetCmd)
 

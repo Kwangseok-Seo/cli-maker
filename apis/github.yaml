@@ -1,0 +1,26 @@
+# GitHub REST API — 인증이 있을 때와 없을 때의 차이가 한 매니페스트 안에서 드러난다.
+#   whoami : 인증 필수. 토큰 없으면 401 "Requires authentication"
+#   repo   : 익명도 200. 다만 시간당 60회 제한 (인증하면 5000회)
+name: gh
+baseUrl: https://api.github.com
+
+auth:
+  type: bearer
+  env: GITHUB_TOKEN
+
+commands:
+  - name: whoami
+    method: GET
+    path: /user
+  - name: repo
+    method: GET
+    path: /repos/{owner}/{repo}
+    params:
+      - name: owner
+        in: path
+        type: string
+        required: true
+      - name: repo
+        in: path
+        type: string
+        required: true

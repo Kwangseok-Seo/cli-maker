@@ -4,10 +4,8 @@
 name: petstore
 baseUrl: https://petstore3.swagger.io/api/v3
 
-# 인증: 환경변수에서 토큰을 읽는다 (매니페스트에 비밀을 담지 않는다).
-auth:
-  type: bearer
-  env: PETSTORE_TOKEN
+# 인증: 이 API 의 pet 조회는 익명으로 된다 — auth 블록 없음.
+#   토큰이 필요한 API 의 예시는 github.yaml 참고 (매니페스트엔 비밀이 아니라 "어느 환경변수를 볼지"만 담는다).
 
 # Command: 유저가 CLI 에서 호출할 동작.
 #   예) cli-maker petstore getPetById --petId 10

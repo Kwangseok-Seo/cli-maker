@@ -3,7 +3,6 @@ package cli
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/Kwangseok-Seo/cli-maker/internal/executor"
 	"github.com/Kwangseok-Seo/cli-maker/internal/manifest"
@@ -26,9 +25,13 @@ func Build(m *manifest.Manifest) *cobra.Command {
 				for _, p := range c.Params {
 					values[p.Name], _ = cmd.Flags().GetString(p.Name)
 				}
-				ctx, cancel := context.WithTimeout(cmd.Context(), 30*time.Second)
+				timeout, err := resolveTimeout(cmd)
+				if err != nil {
+					return err
+				}
+				ctx, cancel := context.WithTimeout(cmd.Context(), timeout)
 				defer cancel()
-				return executor.Execute(ctx, m, &c, values, cmd.OutOrStdout())
+				return executor.Execute(ctx, m, &c, values, cmd.OutOrStdout(), cmd.ErrOrStderr())
 			},
 		}
 
