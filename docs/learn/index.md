@@ -13,6 +13,8 @@ cli-maker 를 만들며 쌓은 **Go·도구 지식**의 위키. 개념을 찾을
 - [[structs]] — 이름 붙은 칸(필드)의 묶음
 - [[pointers]] — `&` 참조
 - [[functions-as-values]] — 함수를 값으로, struct 칸에 담기
+- [[closures]] — 함수가 붙잡는 건 값이 아니라 칸, Go 1.22 루프 변수 변경점
+- [[composite-literals]] — `&T{...}` 리터럴 vs 블록, 필드:값만
 - [[go-modules]] — `go.mod`/`go.sum`, direct/indirect, `go get`/`tidy`, semver
 - [[cobra]] — `cobra.Command` struct, 자동 `--help`
 - [[error-handling]] — 에러는 값, `if err != nil`, `os.Exit`
@@ -27,6 +29,7 @@ cli-maker 를 만들며 쌓은 **Go·도구 지식**의 위키. 개념을 찾을
 - [[M0]] — 프로젝트 골격 + Go 기초 warm-up
 - [[M1]] — cobra 루트 명령 + 첫 외부 의존성
 - [[M2]] — 매니페스트 파싱 (YAML → struct)
+- [[M3]] — 매니페스트 → 명령 동적 생성
 
 ## 최종 산출물 (예정)
 

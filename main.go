@@ -1,16 +1,22 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 
+	"github.com/Kwangseok-Seo/cli-maker/internal/cli"
 	"github.com/Kwangseok-Seo/cli-maker/internal/manifest"
 	"github.com/spf13/cobra"
 )
 
 // cli-maker: 여러 web API 를 하나의 CLI 로 다루기 위한 런타임 인터프리터.
-// M0 골격 — 다음 단계(M1)에서 cobra 루트 명령으로 대체한다.
+// apis/ 의 매니페스트를 런타임에 읽어 <api> <command> 형태의 명령 트리를 만든다 (ADR-0003).
 func main() {
+	// 매니페스트에 적힌 순서를 --help 에 그대로 보이기 위해 cobra 의 자동 알파벳 정렬을 끈다 (ADR-0002).
+	cobra.EnableCommandSorting = false
+
 	rootCmd := &cobra.Command{
 		Use:   "cli-maker",
 		Short: "여러 web API 를 하나의 CLI 로 다루는 도구",
@@ -45,6 +51,26 @@ func main() {
 	}
 
 	rootCmd.AddCommand(parseCmd)
+
+	entries, err := os.ReadDir("apis")
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		fmt.Fprintln(os.Stderr, "cli-maker:", err)
+	}
+
+	for _, e := range entries {
+		if filepath.Ext(e.Name()) != ".yaml" {
+			continue
+		}
+		path := filepath.Join("apis", e.Name())
+
+		m, err := manifest.Load(path)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "cli-maker: %s 생략 (%v)\n", path, err)
+			continue
+		}
+
+		rootCmd.AddCommand(cli.Build(m))
+	}
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)

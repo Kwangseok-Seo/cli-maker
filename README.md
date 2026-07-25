@@ -13,12 +13,25 @@
 
 ## 상태
 
-M0 (골격) 완료. 아직 실제 API 호출 기능은 없습니다.
+M3 완료 — 매니페스트를 런타임에 읽어 서브커맨드를 만듭니다. 실제 HTTP 호출은 아직 없고(M4), 보낼 요청을 출력합니다.
 
 ```
-$ go run .
-cli-maker: 여러 web API 를 위한 CLI (개발 중 — M0 골격)
+$ cli-maker --help
+Available Commands:
+  greet       이름을 받아 인사한다
+  parse       파일을 받아 parse 한다
+  petstore    petstore API        ← apis/example.yaml 에서 생성된 명령
+
+$ cli-maker petstore
+Available Commands:
+  getPetById   GET /pet/{petId}
+  findByStatus GET /pet/findByStatus
+
+$ cli-maker petstore getPetById
+GET https://petstore3.swagger.io/api/v3/pet/{petId}
 ```
+
+`apis/` 에 매니페스트 YAML 을 하나 더 떨어뜨리면 **재컴파일 없이** 새 API 명령이 생깁니다 ([ADR-0003](docs/adr/0003-dynamic-command-surface.md)).
 
 ## 개발
 
@@ -35,9 +48,9 @@ Go 1.26+ 필요.
 | 마일스톤 | 기능 | 배우는 개념 |
 |---|---|---|
 | **M0** ✅ | 프로젝트 골격, `go run` | 모듈 시스템, 패키지, 진입점 |
-| **M1** | Cobra 루트 + 첫 서브커맨드 | 의존성 관리(go get/go.sum), 명령 트리, 인터페이스 |
-| **M2** | 매니페스트 파싱 (YAML→struct) | struct 태그, 언마샬, 에러 처리 |
-| **M3** | 매니페스트→명령 동적 생성 | 클로저 캡처, 고차 함수, 슬라이스/맵 |
+| **M1** ✅ | Cobra 루트 + 첫 서브커맨드 | 의존성 관리(go get/go.sum), 명령 트리, 인터페이스 |
+| **M2** ✅ | 매니페스트 파싱 (YAML→struct) | struct 태그, 언마샬, 에러 처리 |
+| **M3** ✅ | 매니페스트→명령 동적 생성 | 클로저 캡처, 컴포지트 리터럴, 디렉토리 스캔 |
 | **M4** | 제네릭 HTTP 실행기 | net/http, io.Reader/Writer, defer, context |
 | **M5** | 인증·설정 (env 토큰) | os 패키지, 설정 우선순위 |
 | **M6** | 출력 포맷 (`--json`/`--compact`) | encoding/json, 인터페이스 |
