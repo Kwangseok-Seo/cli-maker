@@ -91,6 +91,14 @@ $ ./gh repo --owner spf13 --repo cobra -o compact
 
 매니페스트에 어떤 이름을 적어도 생성물이 깨지지 않습니다 — 유저 문자열은 전부 `%q` 로 인용되고, 생성된 소스는 `go/format` 검산을 통과한 뒤에야 파일로 나갑니다.
 
+## 설치
+
+```
+go install github.com/Kwangseok-Seo/cli-maker@latest
+```
+
+Go 1.26+ 필요. 위의 발견 경로 제한 때문에, 설치한 바이너리는 `apis/` 를 가진 디렉토리에서 실행해야 API 명령이 보입니다.
+
 ## 개발
 
 - 빌드: `go build ./...`
