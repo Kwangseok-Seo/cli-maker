@@ -51,7 +51,9 @@ $ cli-maker gh repo --owner spf13 --repo cobra | jq -r .stargazers_count
 
 요청 타임아웃은 세 층에서 정해집니다 — `--timeout 5s` > `CLI_MAKER_TIMEOUT=60s` > 기본 30초.
 
-`apis/` 에 매니페스트 YAML 을 하나 더 떨어뜨리면 **재컴파일 없이** 새 API 명령이 생깁니다 ([ADR-0003](docs/adr/0003-dynamic-command-surface.md)).
+`apis/` 에 매니페스트 YAML(`.yaml` 또는 `.yml`)을 하나 더 떨어뜨리면 **재컴파일 없이** 새 API 명령이 생깁니다 ([ADR-0003](docs/adr/0003-dynamic-command-surface.md)).
+
+> 발견 경로는 아직 **현재 디렉토리의 `./apis` 뿐**입니다. 그래서 `go install` 로 받은 바이너리는 `apis/` 를 가진 디렉토리에서 실행해야 API 명령이 보입니다 — 다른 곳에서는 아무 말 없이 `greet`·`parse`·`generate` 만 나옵니다. 환경변수·설정 디렉토리·`--manifest` override 는 아직 없습니다(ADR-0003 이 범위로 남겨 둔 자리).
 
 매니페스트는 명령으로 등록되기 전에 검증을 통과해야 합니다. 문제가 있으면 그 파일만 빠지고 나머지는 그대로 동작합니다 ([ADR-0007](docs/adr/0007-load-time-validation.md)).
 
@@ -75,15 +77,15 @@ $ cli-maker generate apis/github.yaml --dir out/gh
 생성: out\gh\main.go
 생성: out\gh\go.mod
 
-$ cd out/gh
-$ go mod edit -replace github.com/Kwangseok-Seo/cli-maker=<cli-maker 저장소 경로>   # 아직 배포 전이라 필요
-$ go mod tidy && go build -o gh .
+$ cd out/gh && go mod tidy && go build -o gh .
 
 $ ./gh repo --owner spf13 --repo cobra -o compact
 {"id":12574344,"node_id":"MDEwOlJlcG9zaXRvcnkxMjU3NDM0NA==",…      ← yaml 없이 돕니다
 ```
 
-> cli-maker 가 아직 공개 배포되지 않아 `replace` 로 로컬 소스를 가리켜야 합니다. `generate` 가 이 안내를 stderr 로 함께 냅니다.
+> 생성된 `go.mod` 에는 `require` 를 적지 않습니다 — `go mod tidy` 가 실제 import 를 보고 cli-maker 버전을 스스로 채웁니다.
+
+**생성된 코드는 당신 것입니다.** 원하는 라이선스로 두면 되고 cli-maker 의 MIT 고지를 이어붙일 필요가 없습니다. 다만 그 CLI 를 빌드하면 [spf13/cobra](https://github.com/spf13/cobra)(Apache-2.0)·[spf13/pflag](https://github.com/spf13/pflag)(BSD-3-Clause) 가 정적 링크되므로, **바이너리를 재배포할 때는** 그쪽 고지가 필요합니다.
 
 생성된 코드는 명령마다 `cobra.Command` 가 펼쳐져 있어 읽을 수 있고, 실행은 런타임 경로와 **같은 함수**(`clirun.Run`)를 부릅니다. 두 CLI 의 명령 표면이 갈리지 않는지는 테스트가 생성 소스를 파싱해 런타임 트리와 대조하며 지킵니다.
 
@@ -119,4 +121,6 @@ Go 1.26+ 필요.
 
 ## 라이선스
 
-MIT — [LICENSE](LICENSE).
+MIT — [LICENSE](LICENSE). `generate` 가 낸 소스는 당신 것입니다(위 참조).
+
+의존성은 전부 permissive 이지만 MIT 는 아닙니다 — cobra·mousetrap Apache-2.0, pflag BSD-3-Clause, yaml.v3 MIT+Apache-2.0. 소스로 쓸 때는 추가 의무가 없고, **바이너리를 배포할 때** 그쪽 고지가 필요합니다.

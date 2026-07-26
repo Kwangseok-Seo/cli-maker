@@ -47,6 +47,8 @@ cli-maker 를 만들며 쌓은 **Go·도구 지식**의 위키. 개념을 찾을
 - [[go-ast]] — `format.Source` 로 검산, `parser`+`ast.Inspect` 로 생성물에서 사실 꺼내기
 - [[type-aliases]] — `type X = Y` 는 이름 하나 더, `type X Y` 는 새 타입(메서드 안 따라옴)
 - [[internal-packages]] — 컴파일러가 막는 경계, 모듈 vs 패키지, 좁은 façade 로 통과시키기
+- [[testing-the-filesystem]] — `t.TempDir()` vs `testdata/`, OS 문구 대신 센티널, 돌연변이로 자물쇠 확인
+- [[go-doc]] — 선언 위 주석이 문서, 별칭은 필드를 감춘다, 문서를 reflect+파서로 붙들기
 
 ## 마일스톤 로그 (`milestones/`)
 
