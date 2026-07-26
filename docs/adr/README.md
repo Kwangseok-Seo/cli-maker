@@ -12,3 +12,4 @@
 | [0006](0006-missing-token-policy.md) | 토큰이 없으면 경고만 남기고 인증 없이 보낸다 | accepted |
 | [0007](0007-load-time-validation.md) | 매니페스트는 등록 전에 검증하고, 문제가 있으면 그 파일을 통째로 건너뛴다 | accepted |
 | [0008](0008-output-format-defaults-to-tty.md) | 출력 포맷의 기본값은 stdout 이 터미널인지로 정한다 | accepted |
+| [0009](0009-generated-cli-shape.md) | 생성된 CLI 는 얇은 공개 façade 를 부르고, 명령 표면은 펼쳐서 낸다 | accepted |

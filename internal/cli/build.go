@@ -1,10 +1,9 @@
 package cli
 
 import (
-	"context"
 	"fmt"
 
-	"github.com/Kwangseok-Seo/cli-maker/internal/executor"
+	"github.com/Kwangseok-Seo/cli-maker/clirun"
 	"github.com/Kwangseok-Seo/cli-maker/internal/manifest"
 	"github.com/spf13/cobra"
 )
@@ -19,23 +18,10 @@ func Build(m *manifest.Manifest) *cobra.Command {
 		sub := &cobra.Command{
 			Use:   c.Name,
 			Short: c.Method + " " + c.Path,
+			// 실행 본체는 clirun 이 갖는다 — 생성된 CLI 도 같은 함수를 부르므로
+			// 두 경로의 동작이 갈릴 수 없다.
 			RunE: func(cmd *cobra.Command, args []string) error {
-				cmd.SilenceUsage = true
-				values := map[string]string{}
-				for _, p := range c.Params {
-					values[p.Name], _ = cmd.Flags().GetString(p.Name)
-				}
-				timeout, err := resolveTimeout(cmd)
-				if err != nil {
-					return err
-				}
-				f, err := resolveFormatter(cmd)
-				if err != nil {
-					return err
-				}
-				ctx, cancel := context.WithTimeout(cmd.Context(), timeout)
-				defer cancel()
-				return executor.Execute(ctx, m, &c, values, f, cmd.OutOrStdout(), cmd.ErrOrStderr())
+				return clirun.Run(cmd, m, &c)
 			},
 		}
 

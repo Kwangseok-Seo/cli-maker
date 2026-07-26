@@ -13,7 +13,7 @@
 
 ## 상태
 
-M8 완료 — 매니페스트로 만들어진 명령이 **실제 API 를 호출**하고, **환경변수의 토큰으로 인증**하며, **보는 사람에 맞춰 출력을 냅니다**. 그리고 그 약속들을 **테스트가 지킵니다**.
+M9 완료 — 매니페스트로 만들어진 명령이 **실제 API 를 호출**하고, **환경변수의 토큰으로 인증**하며, **보는 사람에 맞춰 출력을 냅니다**. 그 약속들을 **테스트가 지키고**, 이제 매니페스트를 **그 API 전용 독립 바이너리로 뽑아낼 수도** 있습니다.
 
 ```
 $ cli-maker gh --help
@@ -66,6 +66,29 @@ commands[2] "ping": 이름이 중복이다
 
 위 약속들은 문서로만 있지 않습니다. `go test ./...` 가 4xx 의 **출력 순서**(ADR-0005), 토큰이 없을 때의 **익명 전송**(ADR-0006), 터미널 여부에 따른 **기본 포맷**(ADR-0008)을 확인합니다. HTTP 는 목(mock) 없이 `httptest` 로 진짜 서버를 띄워, 서버가 실제로 받은 경로·쿼리·헤더로 판정합니다.
 
+## 독립 바이너리로 뽑기
+
+`generate` 는 같은 매니페스트를 읽어, 실행하는 대신 **그 API 전용 CLI 의 Go 소스**를 냅니다 ([ADR-0009](docs/adr/0009-generated-cli-shape.md)).
+
+```
+$ cli-maker generate apis/github.yaml --dir out/gh
+생성: out\gh\main.go
+생성: out\gh\go.mod
+
+$ cd out/gh
+$ go mod edit -replace github.com/Kwangseok-Seo/cli-maker=<cli-maker 저장소 경로>   # 아직 배포 전이라 필요
+$ go mod tidy && go build -o gh .
+
+$ ./gh repo --owner spf13 --repo cobra -o compact
+{"id":12574344,"node_id":"MDEwOlJlcG9zaXRvcnkxMjU3NDM0NA==",…      ← yaml 없이 돕니다
+```
+
+> cli-maker 가 아직 공개 배포되지 않아 `replace` 로 로컬 소스를 가리켜야 합니다. `generate` 가 이 안내를 stderr 로 함께 냅니다.
+
+생성된 코드는 명령마다 `cobra.Command` 가 펼쳐져 있어 읽을 수 있고, 실행은 런타임 경로와 **같은 함수**(`clirun.Run`)를 부릅니다. 두 CLI 의 명령 표면이 갈리지 않는지는 테스트가 생성 소스를 파싱해 런타임 트리와 대조하며 지킵니다.
+
+매니페스트에 어떤 이름을 적어도 생성물이 깨지지 않습니다 — 유저 문자열은 전부 `%q` 로 인용되고, 생성된 소스는 `go/format` 검산을 통과한 뒤에야 파일로 나갑니다.
+
 ## 개발
 
 - 빌드: `go build ./...`
@@ -89,7 +112,8 @@ Go 1.26+ 필요.
 | **M6** ✅ | 매니페스트 검증 (등록 전에 막는다) | map(집합), `errors.Join` |
 | **M7** ✅ | 출력 포맷 (`-o raw\|pretty\|compact`) | encoding/json, 인터페이스, 타입 단언 |
 | **M8** ✅ | 테스트 | table-driven test, httptest |
-| 이후 | `generate` (코드 생성) | text/template |
+| **M9** ✅ | `generate` (코드 생성) | text/template, `//go:embed`, go/ast, 타입 별칭 |
+| 이후 | OpenAPI 임포트 · 배포 | — |
 
 > 각 마일스톤에서 쌓은 이론·문법·겪은 함정은 [`docs/learn/`](docs/learn/) 에 개념별 지식베이스로 정리합니다 — "무엇을 배웠나"의 실증.
 

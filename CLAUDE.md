@@ -23,13 +23,14 @@
 - **런타임 인터프리터**: 단일 바이너리가 매니페스트(데이터)를 런타임에 읽어 cobra 명령을 동적 생성. 새 API = 매니페스트 추가(재컴파일 없음). 근거·거부한 대안(코드 생성)은 `docs/adr/0001-runtime-interpreter-architecture.md`.
 - **CLI 프레임워크**: spf13/cobra (M1 에서 도입).
 - **입력 형식**: 커스텀 매니페스트(YAML). 스키마는 M1~M2 에서 확정. OpenAPI 임포트는 후속.
-- **코드 생성(`generate`)**: 런타임 도메인 모델이 안정된 뒤 2단계로 얹는다(text/template). 아직 아님.
+- **코드 생성(`generate`)**: M9 에서 얹었다. 매니페스트 → 독립 모듈(`main.go` + `go.mod`), 생성 코드는 공개 façade `clirun` 만 부른다. 근거·거부한 대안은 `docs/adr/0009-generated-cli-shape.md`.
 
 ## 레이아웃 (자라나는 대로 추가 — 빈 디렉토리 선점 금지)
 
 - `main.go` — 얇은 진입점.
 - `cmd/` — cobra 명령 정의 (M1~).
-- `internal/` — 내부 구현(외부 임포트 불가). `internal/manifest/`(스키마·파싱), `internal/executor/`(HTTP 실행기) 등 (M2~).
+- `internal/` — 내부 구현(외부 임포트 불가). `internal/manifest/`(스키마·파싱), `internal/executor/`(HTTP 실행기), `internal/generate/`(템플릿·코드 생성) 등 (M2~).
+- `clirun/` — **공개 façade**. 생성된 CLI 가 부르는 유일한 표면(타입 별칭 + `Run`). 여기 있는 것만 외부 계약이므로 넓히기 전에 한 번 더 생각한다 (M9~).
 - `apis/` — 유저 매니페스트. `example.yaml` = 초안 스키마 스케치.
 - `docs/adr/` — 아키텍처 결정 기록.
 - `CONTEXT.md` — 도메인 용어집(glossary 전용).

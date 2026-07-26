@@ -15,7 +15,7 @@ cli-maker 를 만들며 쌓은 **Go·도구 지식**의 위키. 개념을 찾을
 - [[functions-as-values]] — 함수를 값으로, struct 칸에 담기
 - [[closures]] — 함수가 붙잡는 건 값이 아니라 칸, Go 1.22 루프 변수 변경점
 - [[composite-literals]] — `&T{...}` 리터럴 vs 블록, 필드:값만
-- [[go-modules]] — `go.mod`/`go.sum`, direct/indirect, `go get`/`tidy`, semver
+- [[go-modules]] — `go.mod`/`go.sum`, direct/indirect, `go get`/`tidy`, semver, `go` 줄은 언어 의미론 스위치
 - [[cobra]] — `cobra.Command` struct, 자동 `--help`
 - [[error-handling]] — 에러는 값, `if err != nil`, `os.Exit`
 - [[go-toolchain]] — `go run`/`build`/`fmt`/`vet`/`get` 명령
@@ -42,6 +42,11 @@ cli-maker 를 만들며 쌓은 **Go·도구 지식**의 위키. 개념을 찾을
 - [[go-test]] — 소스 옆 `_test.go`, 단언은 손으로, `Errorf` vs `Fatalf`, 규약은 다섯 줄뿐
 - [[table-driven-tests]] — 익명 struct 테이블 + `t.Run`, 이름은 전부 우리가 짓는다, 필드에 함수 담기
 - [[httptest]] — 목 대신 진짜 서버, `http.HandlerFunc` 는 함수를 인터페이스로, `Close` 는 기다린다
+- [[text-template]] — 텍스트만 만든다(Go 를 모른다), `.` 커서와 `$` 루트, 공백 제어, `%q` 인용
+- [[go-embed]] — 빌드 시점에 파일을 바이너리 안으로, 지시문은 변수 선언 바로 위
+- [[go-ast]] — `format.Source` 로 검산, `parser`+`ast.Inspect` 로 생성물에서 사실 꺼내기
+- [[type-aliases]] — `type X = Y` 는 이름 하나 더, `type X Y` 는 새 타입(메서드 안 따라옴)
+- [[internal-packages]] — 컴파일러가 막는 경계, 모듈 vs 패키지, 좁은 façade 로 통과시키기
 
 ## 마일스톤 로그 (`milestones/`)
 
@@ -54,6 +59,7 @@ cli-maker 를 만들며 쌓은 **Go·도구 지식**의 위키. 개념을 찾을
 - [[M6]] — 매니페스트 검증 (등록 전에 막는다)
 - [[M7]] — 출력 포맷 (터미널이면 pretty, 파이프면 raw)
 - [[M8]] — 테스트 (ADR 세 건을 실행 가능한 판정으로)
+- [[M9]] — `generate` (매니페스트가 독립 바이너리가 된다)
 
 ## 최종 산출물 (예정)
 
