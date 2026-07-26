@@ -130,7 +130,7 @@ func TestGeneratedDelegatesSharedFlags(t *testing.T) {
 	}
 }
 
-// TestSurfaceMatchesRuntime 은 이 마일스톤의 자물쇠다.
+// TestSurfaceMatchesRuntime 은 이 마일스톤의 pinning test 다.
 //
 // 같은 매니페스트로 만든 두 CLI — 런타임 인터프리터가 세운 cobra 트리와 생성된
 // 소스 — 의 명령 표면이 같아야 한다. 실행 본체(clirun.Run)는 공유하지만 표면을
