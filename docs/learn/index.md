@@ -39,6 +39,9 @@ cli-maker 를 만들며 쌓은 **Go·도구 지식**의 위키. 개념을 찾을
 - [[encoding-json]] — 세 층위, `Indent`/`Compact` 는 바이트만 만진다, map 경유하면 키 순서 소실
 - [[bitmasks]] — `&` 로 한 비트 꺼내기, `os.FileMode` 는 uint32, C 와 다른 우선순위
 - [[identifier-shadowing]] — `byte`·`len` 은 예약어가 아니다, 가려도 vet 이 안 잡는다
+- [[go-test]] — 소스 옆 `_test.go`, 단언은 손으로, `Errorf` vs `Fatalf`, 규약은 다섯 줄뿐
+- [[table-driven-tests]] — 익명 struct 테이블 + `t.Run`, 이름은 전부 우리가 짓는다, 필드에 함수 담기
+- [[httptest]] — 목 대신 진짜 서버, `http.HandlerFunc` 는 함수를 인터페이스로, `Close` 는 기다린다
 
 ## 마일스톤 로그 (`milestones/`)
 
@@ -50,6 +53,7 @@ cli-maker 를 만들며 쌓은 **Go·도구 지식**의 위키. 개념을 찾을
 - [[M5]] — 인증과 설정 (env 토큰, 우선순위 사슬)
 - [[M6]] — 매니페스트 검증 (등록 전에 막는다)
 - [[M7]] — 출력 포맷 (터미널이면 pretty, 파이프면 raw)
+- [[M8]] — 테스트 (ADR 세 건을 실행 가능한 판정으로)
 
 ## 최종 산출물 (예정)
 

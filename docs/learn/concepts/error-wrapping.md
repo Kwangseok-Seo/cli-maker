@@ -35,6 +35,26 @@ return errors.Join(errs...)
 
 검증처럼 문제가 여럿 나올 수 있는 곳에서 값을 한다. 하나 찾을 때마다 반환하면 유저가 고치러 여러 번 왕복한다.
 
+`errors.Join` 이 만든 에러는 `Unwrap() []error` 를 가지므로 **다시 펼 수 있다.** 그 타입은 비공개라 이름을 적을 수 없지만, 필요한 건 이름이 아니라 계약뿐이다:
+
+```go
+joined, ok := err.(interface{ Unwrap() []error })
+len(joined.Unwrap())   // 문제가 몇 개였나
+```
+
+## 센티널이 있을 때와 없을 때
+
+`errors.Is` 로 정확히 판정하려면 **비교할 값**이 있어야 한다.
+
+```go
+errors.Is(err, context.DeadlineExceeded)   // ○ 표준 라이브러리가 값 하나로 정해 둔 센티널
+strings.Contains(err.Error(), "중복이다")     // △ 우리 검증 에러 — 비교할 값이 없다
+```
+
+우리 `Validate` 의 에러는 전부 `errors.New`/`fmt.Errorf` 로 만든 **문자열**이라 서로 구별할 타입도 값도 없다. 그래서 테스트가 메시지 조각으로 판정할 수밖에 없고, 문구를 다듬으면 테스트가 깨진다.
+
+반대쪽은 `context.DeadlineExceeded` 다 — `net/http` 가 `*url.Error` 로 감싸도 `errors.Is` 가 뚫고 찾는다. **센티널을 둘지 말지는 "이 에러를 기계가 분기에 쓸 것인가"로 갈린다.** 사람만 읽는다면 문자열로 충분하다.
+
 ## 진단은 출처를 말해야 한다
 
 ```
