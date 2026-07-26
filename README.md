@@ -13,7 +13,7 @@
 
 ## 상태
 
-M5 완료 — 매니페스트로 만들어진 명령이 **실제 API 를 호출**하고, **환경변수의 토큰으로 인증**합니다.
+M7 완료 — 매니페스트로 만들어진 명령이 **실제 API 를 호출**하고, **환경변수의 토큰으로 인증**하며, **보는 사람에 맞춰 출력을 냅니다**.
 
 ```
 $ cli-maker gh --help
@@ -33,6 +33,21 @@ $ GITHUB_TOKEN=<진짜 토큰> cli-maker gh whoami
 매니페스트에는 **토큰이 아니라 어느 환경변수를 볼지**만 적습니다(`auth: {type: bearer, env: GITHUB_TOKEN}`). 토큰이 없으면 거부하지 않고 경고만 남기고 인증 없이 보냅니다 — 익명으로도 되는 엔드포인트를 막지 않기 위해서입니다([ADR-0006](docs/adr/0006-missing-token-policy.md)).
 
 Param 은 모두 flag 로 드러나고(`--이름 값`), 본문은 stdout 으로만 나가므로 `| jq` 가 안전하며, 4xx/5xx 는 종료 코드 1 로 알립니다.
+
+출력은 **누가 보고 있는지**에 따라 달라집니다 — 터미널이면 읽기 좋게 들여쓰고, 파이프나 리다이렉트면 받은 바이트를 그대로 냅니다([ADR-0008](docs/adr/0008-output-format-defaults-to-tty.md)).
+
+```
+$ cli-maker gh repo --owner spf13 --repo cobra        # 터미널
+{
+  "id": 12574344,
+  "name": "cobra",                                    ← 서버가 보낸 필드 순서 그대로
+  …
+
+$ cli-maker gh repo --owner spf13 --repo cobra | jq -r .stargazers_count
+44314                                                 ← 파이프엔 원본 바이트가 간다
+```
+
+`-o raw|pretty|compact` 로 직접 고를 수 있습니다. 응답이 JSON 이 아니면(`cli-maker gh zen` 은 평문 한 줄) 원본을 그대로 내보내고 종료 코드도 건드리지 않습니다 — 명시한 경우에만 stderr 로 한 줄 알립니다.
 
 요청 타임아웃은 세 층에서 정해집니다 — `--timeout 5s` > `CLI_MAKER_TIMEOUT=60s` > 기본 30초.
 
@@ -70,7 +85,7 @@ Go 1.26+ 필요.
 | **M4** ✅ | 제네릭 HTTP 실행기 | net/http, io.Reader/Writer, defer, context |
 | **M5** ✅ | 인증·설정 (env 토큰) | os 패키지, 설정 우선순위 |
 | **M6** ✅ | 매니페스트 검증 (등록 전에 막는다) | map(집합), `errors.Join` |
-| **M7** | 출력 포맷 (`--json`/`--compact`) | encoding/json, 인터페이스 |
+| **M7** ✅ | 출력 포맷 (`-o raw\|pretty\|compact`) | encoding/json, 인터페이스, 타입 단언 |
 | **M8** | 테스트 | table-driven test, httptest |
 | 이후 | `generate` (코드 생성) | text/template |
 

@@ -38,7 +38,8 @@ strings.Reader:                    102400 바이트 (1회)
 func Execute(..., out io.Writer) error   // os.Stdout 이 아니라 io.Writer
 ```
 
-- 실제로는 `cmd.OutOrStdout()` 을 넘기지만, 테스트에서는 `&bytes.Buffer{}` 를 끼워 출력을 문자열로 붙잡을 수 있다(M7).
+- 실제로는 `cmd.OutOrStdout()` 을 넘기지만, 테스트에서는 `&bytes.Buffer{}` 를 끼워 출력을 문자열로 붙잡을 수 있다(M8).
+- M7 에서 이 자리에 [[interfaces]] 가 하나 더 끼었다 — `io.Copy` 대신 `Formatter.Format` 을 부른다.
 - `os.Stdout` 을 함수 안에 직접 박으면 그 함수는 영원히 화면에만 쓴다.
 
 ## 겪은 함정
@@ -47,4 +48,4 @@ func Execute(..., out io.Writer) error   // os.Stdout 이 아니라 io.Writer
 
 ## 관련
 
-[[net-http]] · [[file-io]] · [[functions-as-values]] · [[stdout-stderr]] · [[defer]]
+[[net-http]] · [[file-io]] · [[functions-as-values]] · [[stdout-stderr]] · [[defer]] · [[interfaces]] · [[encoding-json]]

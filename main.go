@@ -35,6 +35,7 @@ func main() {
 
 	// 모든 API 명령이 공유하는 설정. env(CLI_MAKER_TIMEOUT)로도 줄 수 있다 — 우선순위는 internal/cli/timeout.go.
 	rootCmd.PersistentFlags().Duration(cli.TimeoutFlag, 30*time.Second, "요청 타임아웃 (env: CLI_MAKER_TIMEOUT)")
+	rootCmd.PersistentFlags().StringP(cli.OutputFlag, "o", "auto", "출력 형식: auto|raw|pretty|compact")
 
 	rootCmd.AddCommand(greetCmd)
 

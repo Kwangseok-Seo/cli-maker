@@ -1,6 +1,7 @@
 # GitHub REST API — 인증이 있을 때와 없을 때의 차이가 한 매니페스트 안에서 드러난다.
 #   whoami : 인증 필수. 토큰 없으면 401 "Requires authentication"
 #   repo   : 익명도 200. 다만 시간당 60회 제한 (인증하면 5000회)
+#   zen    : 응답이 JSON 이 아니라 평문 한 줄 — 출력 포맷의 폴백 경로를 밟는 표적 (M7)
 name: gh
 baseUrl: https://api.github.com
 
@@ -24,3 +25,6 @@ commands:
         in: path
         type: string
         required: true
+  - name: zen
+    method: GET
+    path: /zen

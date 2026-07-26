@@ -29,9 +29,13 @@ func Build(m *manifest.Manifest) *cobra.Command {
 				if err != nil {
 					return err
 				}
+				f, err := resolveFormatter(cmd)
+				if err != nil {
+					return err
+				}
 				ctx, cancel := context.WithTimeout(cmd.Context(), timeout)
 				defer cancel()
-				return executor.Execute(ctx, m, &c, values, cmd.OutOrStdout(), cmd.ErrOrStderr())
+				return executor.Execute(ctx, m, &c, values, f, cmd.OutOrStdout(), cmd.ErrOrStderr())
 			},
 		}
 
