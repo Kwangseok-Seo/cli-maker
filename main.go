@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"time"
 
-	"github.com/Kwangseok-Seo/cli-maker/clirun"
 	"github.com/Kwangseok-Seo/cli-maker/internal/cli"
 	"github.com/Kwangseok-Seo/cli-maker/internal/generate"
 	"github.com/Kwangseok-Seo/cli-maker/internal/manifest"
@@ -35,10 +33,6 @@ func main() {
 			fmt.Println("안녕, " + args[0] + "!")
 		},
 	}
-
-	// 모든 API 명령이 공유하는 설정. env(CLI_MAKER_TIMEOUT)로도 줄 수 있다 — 우선순위는 internal/cli/timeout.go.
-	rootCmd.PersistentFlags().Duration(clirun.TimeoutFlag, 30*time.Second, "요청 타임아웃 (env: CLI_MAKER_TIMEOUT)")
-	rootCmd.PersistentFlags().StringP(clirun.OutputFlag, "o", "auto", "출력 형식: auto|raw|pretty|compact")
 
 	rootCmd.AddCommand(greetCmd)
 
@@ -103,11 +97,10 @@ func main() {
 			if len(kept) == 0 {
 				fmt.Fprintln(errOut, "생성:", filepath.Join(genDir, "go.mod"))
 			}
-			// cli-maker 자신의 소스 위치는 실행 중에 알 수 없다 — 자리표시자로 둔다.
+			// go.mod 에 require 를 적지 않으므로 tidy 가 cli-maker 버전을 스스로 채운다.
 			fmt.Fprintf(errOut, `
-다음 단계 — cli-maker 가 아직 배포되지 않아 로컬 소스를 가리켜야 한다:
+다음 단계:
   cd %s
-  go mod edit -replace github.com/Kwangseok-Seo/cli-maker=<cli-maker 저장소 경로>
   go mod tidy
   go build -o %s .
 `, genDir, module)

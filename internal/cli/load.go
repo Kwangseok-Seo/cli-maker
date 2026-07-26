@@ -25,7 +25,10 @@ func LoadDir(root *cobra.Command, dir string) []error {
 
 	var errs []error
 	for _, e := range entries {
-		if filepath.Ext(e.Name()) != ".yaml" {
+		// .yaml 과 .yml 을 모두 받는다. 한쪽만 보면 다른 쪽으로 저장한 매니페스트가
+		// 에러도 명령도 남기지 않고 사라진다 — exit 0 에 아무 말이 없어 유저가
+		// 왜 명령이 없는지 알아낼 방법이 없다.
+		if ext := filepath.Ext(e.Name()); ext != ".yaml" && ext != ".yml" {
 			continue
 		}
 		path := filepath.Join(dir, e.Name())
@@ -43,12 +46,14 @@ func LoadDir(root *cobra.Command, dir string) []error {
 		}
 
 		// 전역 검증: CLI 전역 표면을 알아야 판정 가능한 것.
-		if err := checkGlobal(root, m); err != nil {
+		// 그룹을 먼저 지어서 함께 넘긴다 — 예약된 flag 이름의 출처가 그룹이기 때문이다.
+		group := Build(m)
+		if err := checkGlobal(root, group, m); err != nil {
 			errs = append(errs, fmt.Errorf("%s 생략\n%w", path, err))
 			continue
 		}
 
-		root.AddCommand(Build(m))
+		root.AddCommand(group)
 	}
 
 	return errs
@@ -56,7 +61,7 @@ func LoadDir(root *cobra.Command, dir string) []error {
 
 // checkGlobal 은 이미 만들어진 CLI 표면과 충돌하는지 본다.
 // 예약어 목록을 상수로 두지 않고 root 에 직접 물어본다 — 명령이나 flag 가 늘어도 저절로 따라온다.
-func checkGlobal(root *cobra.Command, m *manifest.Manifest) error {
+func checkGlobal(root, group *cobra.Command, m *manifest.Manifest) error {
 	var errs []error
 
 	if reservedCommand(root, m.Name) {
@@ -66,7 +71,7 @@ func checkGlobal(root *cobra.Command, m *manifest.Manifest) error {
 	for i, c := range m.Commands {
 		for _, p := range c.Params {
 			// help 는 cobra 가 명령마다 자동으로 붙이는 flag 라 Lookup 으로는 안 잡힌다.
-			if p.Name == "help" || root.PersistentFlags().Lookup(p.Name) != nil {
+			if p.Name == "help" || group.PersistentFlags().Lookup(p.Name) != nil {
 				errs = append(errs, fmt.Errorf("commands[%d] %q: param %q 는 예약된 flag 이름이다", i, c.Name, p.Name))
 			}
 		}

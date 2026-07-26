@@ -9,8 +9,9 @@ import (
 )
 
 const (
-	// TimeoutFlag 는 루트에 persistent flag 로 등록되는 이름이자, 여기서 읽는 이름이다.
-	// 매니페스트 param 이 같은 이름을 쓰면 로컬 flag 가 이걸 가린다 (M5 후속 과제).
+	// TimeoutFlag 는 API 그룹에 persistent flag 로 등록되는 이름이자, 여기서 읽는 이름이다
+	// (생성된 CLI 에선 그 루트가 곧 그룹이다). 같은 이름의 param 은 M6 부터 등록 시점에
+	// 거부되므로 로컬 flag 가 이걸 가릴 일은 없다 — 다만 shorthand(-o)는 여전히 안 본다.
 	TimeoutFlag = "timeout"
 
 	defaultTimeout = 30 * time.Second

@@ -10,7 +10,8 @@ import (
 )
 
 const (
-	// OutputFlag 는 루트에 persistent flag 로 등록되는 이름이자, 여기서 읽는 이름이다.
+	// OutputFlag 는 API 그룹에 persistent flag 로 등록되는 이름이자, 여기서 읽는 이름이다
+	// (생성된 CLI 에선 그 루트가 곧 그룹이다).
 	OutputFlag = "output"
 
 	// outputAuto 는 기본값. "유저가 고르지 않았다" 를 뜻하고, 이때만 stdout 이

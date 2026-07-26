@@ -92,6 +92,44 @@ func TestGoMod(t *testing.T) {
 	}
 }
 
+// TestGeneratedDelegatesSharedFlags 는 생성물이 공유 flag 를 직접 등록하지 않고
+// clirun 에 맡기는지 본다.
+//
+// 직접 등록하면 기본값이 clirun 의 것과 갈리는데, 갈린 것이 --help 에만 보여서
+// 조용하다 — 실측: clirun 의 defaultTimeout 만 1ns 로 바꿔도 --help 는 계속
+// "default 30s" 를 광고하고 요청은 즉시 데드라인을 넘겼다. 그래서 등록을 옮겼고,
+// 다시 돌아오지 않게 여기서 붙든다.
+//
+// 문자열이 아니라 파서에게 묻는다 — 주석에 적힌 이름을 호출로 세지 않기 위해서다.
+func TestGeneratedDelegatesSharedFlags(t *testing.T) {
+	var buf bytes.Buffer
+	if err := Main(&buf, probeManifest(), "apis/probe.yaml"); err != nil {
+		t.Fatalf("Main() 에러: %v", err)
+	}
+
+	f, err := parser.ParseFile(token.NewFileSet(), "main.go", buf.Bytes(), 0)
+	if err != nil {
+		t.Fatalf("생성된 소스를 파싱할 수 없다: %v", err)
+	}
+
+	called := map[string]bool{}
+	ast.Inspect(f, func(n ast.Node) bool {
+		if call, ok := n.(*ast.CallExpr); ok {
+			if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
+				called[sel.Sel.Name] = true
+			}
+		}
+		return true
+	})
+
+	if !called["AddSharedFlags"] {
+		t.Error("생성물이 clirun.AddSharedFlags 를 부르지 않는다 — 공유 flag 가 아예 없거나 직접 등록했다")
+	}
+	if called["PersistentFlags"] {
+		t.Error("생성물이 공유 flag 를 직접 등록한다 — 기본값이 clirun 과 갈린다")
+	}
+}
+
 // TestSurfaceMatchesRuntime 은 이 마일스톤의 자물쇠다.
 //
 // 같은 매니페스트로 만든 두 CLI — 런타임 인터프리터가 세운 cobra 트리와 생성된
