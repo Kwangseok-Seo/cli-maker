@@ -72,6 +72,63 @@ commands:
 			},
 		},
 		{
+			// body: 는 M10 에서 생긴 자리다. 이 케이스가 잠그는 것은 필드가 exported 라는 것 —
+			// 소문자 body 였다면 리플렉션이 쓸 수 없어 yaml 이 조용히 건너뛰고, 파싱은 성공한
+			// 채로 세 단언이 모두 깨진다. 태그를 붙여도 권한이 생기지는 않는다.
+			name: "body 가 포인터로 채워진다",
+			body: `
+name: pstore
+baseUrl: https://petstore3.swagger.io/api/v3
+commands:
+  - name: addPet
+    method: POST
+    path: /pet
+    body:
+      required: true
+      contentType: application/json
+`,
+			check: func(t *testing.T, m *Manifest) {
+				if len(m.Commands) != 1 {
+					t.Fatalf("Commands %d개, want 1개", len(m.Commands))
+				}
+				b := m.Commands[0].Body
+				// 뒤 두 줄이 이 줄의 성립을 전제하므로 Errorf 가 아니라 Fatal 이다.
+				// nil 인 채로 b.Required 를 읽으면 실패가 아니라 panic 이고,
+				// 그러면 이 서브테스트만이 아니라 나머지 결과까지 함께 날아간다.
+				if b == nil {
+					t.Fatal("Body = nil — body: 를 적었는데 안 채워졌다")
+				}
+				if !b.Required {
+					t.Errorf("Body.Required = false, want true")
+				}
+				if b.ContentType != "application/json" {
+					t.Errorf("Body.ContentType = %q, want %q", b.ContentType, "application/json")
+				}
+			},
+		},
+		{
+			// nil 이 "이 명령은 본문을 받지 않는다"를 뜻한다. 값 struct 였다면 body: 를 안 적은
+			// 명령과 body: {} 를 적은 명령이 파싱 후에 구별되지 않고, 그러면 --data 를 모든
+			// 명령에 등록할 수밖에 없어 GET 명령이 본문 flag 를 달게 된다.
+			name: "body 를 안 적으면 nil 이다",
+			body: `
+name: pstore
+baseUrl: https://petstore3.swagger.io/api/v3
+commands:
+  - name: getPetById
+    method: GET
+    path: /pet/{petId}
+`,
+			check: func(t *testing.T, m *Manifest) {
+				if len(m.Commands) != 1 {
+					t.Fatalf("Commands %d개, want 1개", len(m.Commands))
+				}
+				if b := m.Commands[0].Body; b != nil {
+					t.Errorf("Body = &%+v, want nil", *b)
+				}
+			},
+		},
+		{
 			// LoadDir 이 이 sentinel 로 "apis/ 가 없는 건 잘못이 아니다"를 가르므로,
 			// Load 가 이걸 감싸서 돌려주는 성질이 위층 분기의 전제다.
 			name:    "없는 파일은 fs.ErrNotExist 로 온다",

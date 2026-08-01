@@ -9,6 +9,7 @@ import (
 	"github.com/Kwangseok-Seo/cli-maker/internal/generate"
 	"github.com/Kwangseok-Seo/cli-maker/internal/manifest"
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
 )
 
 // cli-maker: 여러 web API 를 하나의 CLI 로 다루기 위한 런타임 인터프리터.
@@ -46,7 +47,17 @@ func main() {
 				fmt.Fprintln(os.Stderr, "parse:", err)
 				os.Exit(1)
 			}
-			fmt.Printf("%+v\n", *m)
+			// %+v 가 아니라 YAML 로 낸다. fmt 는 struct 안에 중첩된 포인터를 펼치지 않아
+			// body 가 Body:0xc000... 주소로 찍혔다 (M10). 다시 YAML 로 내면 포인터가
+			// 펼쳐지고, 유저가 적은 것과 같은 언어라 입력과 나란히 놓고 볼 수 있다.
+			// omitempty 를 쓰지 않으므로 빈 필드도 그대로 보인다 — 디버그 도구에서는
+			// "이 자리가 비었다"가 곧 답일 때가 많다.
+			out, err := yaml.Marshal(m)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "parse:", err)
+				os.Exit(1)
+			}
+			cmd.OutOrStdout().Write(out)
 		},
 	}
 
@@ -67,9 +78,14 @@ func main() {
 			if err != nil {
 				return err
 			}
-			// 런타임 등록과 같은 검증을 통과해야 한다. 전역 검증(checkGlobal)은
-			// 이 CLI 의 명령 표면에 관한 것이라 생성물과는 무관해 여기선 보지 않는다.
+			// 런타임 등록과 같은 검증을 통과해야 한다.
 			if err := manifest.Validate(m); err != nil {
+				return err
+			}
+			// 전역 검증 중 매니페스트 이름 충돌·그룹 persistent flag 는 이 CLI 의 명령
+			// 표면에 관한 것이라 생성물과 무관하다. 본문 flag 충돌만 다르다 — 생성된
+			// CLI 도 같은 flag 를 달기 때문에, 통과시키면 실행 시점에 패닉하는 소스가 나간다.
+			if err := cli.CheckBodyFlags(m); err != nil {
 				return err
 			}
 

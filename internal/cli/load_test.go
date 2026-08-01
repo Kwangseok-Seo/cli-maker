@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Kwangseok-Seo/cli-maker/internal/manifest"
 	"github.com/spf13/cobra"
 )
 
@@ -57,6 +58,9 @@ func TestLoadDir(t *testing.T) {
 		noDir bool
 		// wantErrs[i] 는 i번째 에러에 들어 있어야 할 조각들. 개수도 곧 기대치다.
 		wantErrs [][]string
+		// wantNotErrs 는 어느 에러에도 나오면 안 되는 조각. 과잉 보고를 잡는다 —
+		// "무엇을 잡았나" 만 보면 "무엇을 안 잡았어야 하나" 가 검증되지 않는다.
+		wantNotErrs []string
 		// wantCmds 는 LoadDir 이 새로 붙인 그룹 이름 — 붙은 순서대로.
 		wantCmds []string
 		// wantSubs 는 그룹별 하위 명령. 충돌에서 누가 이겼는지가 여기서 드러난다.
@@ -131,6 +135,42 @@ commands:
 `,
 			},
 			wantErrs: [][]string{{"aaa.yaml 생략", `param "output" 는 예약된 flag 이름이다`}},
+		},
+		{
+			// --output 과 달리 본문 flag 는 그룹이 아니라 명령 자신에게 붙는다. 그래서
+			// 같은 이름의 param 은 가려지는 게 아니라 pflag 를 패닉시킨다 — 등록 전에
+			// 막아야 하는 이유다.
+			//
+			// 두 번째 명령이 이 케이스의 요점이다. 예약어를 상수 "data" 로 적지 않고
+			// clirun.AddBodyFlag 에게 물어보기 때문에, body: 가 없어 flag 가 안 붙는
+			// noBody 는 같은 param 이름을 써도 걸리지 않는다. 상수 목록이었다면 둘 다
+			// 걸렸을 것이고, 그건 없는 문제를 보고하는 것이다.
+			name: "본문 flag 이름과 겹치는 param 은 거부한다",
+			files: map[string]string{
+				"aaa.yaml": `
+name: api
+baseUrl: https://example.com
+commands:
+  - name: withBody
+    method: POST
+    path: /x
+    body:
+      required: true
+    params:
+      - name: data
+        in: query
+        type: string
+  - name: noBody
+    method: GET
+    path: /y
+    params:
+      - name: data
+        in: query
+        type: string
+`,
+			},
+			wantErrs:    [][]string{{"aaa.yaml 생략", `commands[0] "withBody": param "data" 는 본문 flag 이름과 겹친다`}},
+			wantNotErrs: []string{"noBody"},
 		},
 		{
 			// apis/ 에 매니페스트 아닌 파일이 있어도 된다 — README, 메모 같은 것들.
@@ -234,6 +274,13 @@ commands:
 					}
 				}
 			}
+			for _, f := range tt.wantNotErrs {
+				for i, e := range errs {
+					if strings.Contains(e.Error(), f) {
+						t.Errorf("errs[%d] 에 %q 가 있다 (없어야 한다)\n실제: %v", i, f, e)
+					}
+				}
+			}
 
 			var got []string
 			for _, c := range root.Commands() {
@@ -258,6 +305,63 @@ commands:
 				if !slices.Equal(subs, want) {
 					t.Errorf("%s 의 하위 명령 = %v, want %v", group, subs, want)
 				}
+			}
+		})
+	}
+}
+
+// TestCheckBodyFlags 는 생성 경로와 공유하는 검사를 직접 부른다.
+//
+// LoadDir 을 통해서도 밟히지만, 이건 밖으로 내보낸 함수라 계약이 따로 있다 —
+// generate 가 부르는 것이 이 함수이기 때문이다. main.go 의 그 호출 자체는 여기서
+// 덮이지 않는다 (package main 은 임포트할 수 없다).
+func TestCheckBodyFlags(t *testing.T) {
+	body := &manifest.Body{Required: true}
+
+	tests := []struct {
+		name    string
+		cmds    []manifest.Command
+		wantErr string
+	}{
+		{
+			name: "본문이 없으면 같은 이름이어도 통과한다",
+			cmds: []manifest.Command{{
+				Name: "noBody", Method: "GET", Path: "/y",
+				Params: []manifest.Param{{Name: "data", In: "query"}},
+			}},
+		},
+		{
+			name: "본문이 있으면 겹치는 param 을 잡는다",
+			cmds: []manifest.Command{{
+				Name: "withBody", Method: "POST", Path: "/x", Body: body,
+				Params: []manifest.Param{{Name: "data", In: "query"}},
+			}},
+			wantErr: `commands[0] "withBody": param "data" 는 본문 flag 이름과 겹친다`,
+		},
+		{
+			name: "겹치지 않는 param 은 통과한다",
+			cmds: []manifest.Command{{
+				Name: "withBody", Method: "POST", Path: "/x", Body: body,
+				Params: []manifest.Param{{Name: "petId", In: "path", Required: true}},
+			}},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := CheckBodyFlags(&manifest.Manifest{Name: "api", Commands: tt.cmds})
+
+			if tt.wantErr == "" {
+				if err != nil {
+					t.Errorf("CheckBodyFlags() = %v, want nil", err)
+				}
+				return
+			}
+			if err == nil {
+				t.Fatalf("CheckBodyFlags() = nil, want %q", tt.wantErr)
+			}
+			if !strings.Contains(err.Error(), tt.wantErr) {
+				t.Errorf("에러에 %q 가 없다: %v", tt.wantErr, err)
 			}
 		})
 	}

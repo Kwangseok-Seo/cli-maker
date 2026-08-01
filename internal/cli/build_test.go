@@ -41,9 +41,11 @@ func TestBuildRegistersSharedFlags(t *testing.T) {
 // 목을 만들지 않고 httptest 로 진짜 서버를 띄운다 — 판정 방향이 "우리가 무엇을
 // 했는가"가 아니라 "상대가 무엇을 받았는가"여야 하기 때문이다.
 func TestBuildEndToEnd(t *testing.T) {
-	var gotPath, gotQuery string
+	var gotPath, gotQuery, gotBody, gotType string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotPath, gotQuery = r.URL.Path, r.URL.RawQuery
+		b, _ := io.ReadAll(r.Body)
+		gotBody, gotType = string(b), r.Header.Get("Content-Type")
 		io.WriteString(w, "{\"id\":10,\n \"name\":\"Rufus\"}")
 	}))
 	t.Cleanup(srv.Close)
@@ -59,6 +61,9 @@ func TestBuildEndToEnd(t *testing.T) {
 		wantQuery string
 		// wantOut 은 stdout 에 그대로 있어야 할 조각.
 		wantOut string
+		// wantBody·wantType 은 서버가 실제로 받은 요청 본문과 Content-Type.
+		wantBody string
+		wantType string
 	}{
 		{
 			// -o compact 가 그룹의 persistent flag 로 상속돼 명령 자리에서 먹는다.
@@ -95,11 +100,34 @@ func TestBuildEndToEnd(t *testing.T) {
 			wantPath: "/pet/10",
 			wantOut:  "{\"id\":10,\n \"name\":\"Rufus\"}",
 		},
+		{
+			// --data 값이 clirun.Run 의 resolveBody 를 지나 실행기까지 가서 선을 탄다.
+			// Content-Type 은 매니페스트가 비워 뒀으므로 기본값이 붙어야 한다.
+			name:     "본문은 --data 로 실려 서버까지 간다",
+			args:     []string{"api", "add", "--data", `{"name":"rex"}`},
+			wantPath: "/pet",
+			wantBody: `{"name":"rex"}`,
+			wantType: "application/json",
+		},
+		{
+			// AddBodyFlag 가 MarkFlagRequired 를 부르는지. 안 부르면 빈 POST 가 나간다 —
+			// M10 이전의 그 동작이다.
+			name:    "required 본문을 빼면 요청 전에 막힌다",
+			args:    []string{"api", "add"},
+			wantErr: `required flag(s) "data" not set`,
+		},
+		{
+			// Body 가 nil 인 명령에는 --data 가 아예 등록되지 않는다. 값 struct 였다면
+			// 이 구별이 불가능해 모든 명령에 --data 가 붙었을 것이다 (ADR-0010).
+			name:    "본문 없는 명령에 --data 를 주면 거절한다",
+			args:    []string{"api", "get", "--petId", "10", "--data", "x"},
+			wantErr: "unknown flag: --data",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotPath, gotQuery = "", ""
+			gotPath, gotQuery, gotBody, gotType = "", "", "", ""
 
 			m := probeManifest("api")
 			m.BaseURL = srv.URL // 바꾸는 것은 목적지뿐이다
@@ -136,6 +164,12 @@ func TestBuildEndToEnd(t *testing.T) {
 			if gotQuery != tt.wantQuery {
 				t.Errorf("서버가 받은 쿼리 = %q, want %q", gotQuery, tt.wantQuery)
 			}
+			if gotBody != tt.wantBody {
+				t.Errorf("서버가 받은 본문 = %q, want %q", gotBody, tt.wantBody)
+			}
+			if gotType != tt.wantType {
+				t.Errorf("서버가 받은 Content-Type = %q, want %q", gotType, tt.wantType)
+			}
 			if tt.wantOut != "" && !strings.Contains(out.String(), tt.wantOut) {
 				t.Errorf("stdout = %q, want %q 를 포함", out.String(), tt.wantOut)
 			}
@@ -156,6 +190,12 @@ func probeManifest(name string) *manifest.Manifest {
 			{
 				Name: "find", Method: "GET", Path: "/pet/find",
 				Params: []manifest.Param{{Name: "status", In: "query", Type: "string"}},
+			},
+			{
+				// 본문을 받는 명령. Body 가 nil 인 위 둘과 나란히 둬서 --data 가
+				// 이 명령에만 붙는지 같은 매니페스트 안에서 대조된다.
+				Name: "add", Method: "POST", Path: "/pet",
+				Body: &manifest.Body{Required: true},
 			},
 		},
 	}

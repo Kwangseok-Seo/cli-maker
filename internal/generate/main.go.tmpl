@@ -47,6 +47,9 @@ func main() {
 {{- end}}
 			},
 {{- end}}
+{{- with .Body}}
+			Body: &clirun.Body{Required: {{.Required}}, ContentType: {{printf "%q" .ContentType}}},
+{{- end}}
 		}
 		sub := &cobra.Command{
 			Use:   {{printf "%q" .Name}},
@@ -55,6 +58,9 @@ func main() {
 				return clirun.Run(cmd, &api, c)
 			},
 		}
+		// 본문 flag 도 clirun 이 등록한다 — 이름·usage·필수 여부가 런타임 경로와 갈릴 수 없다.
+		// Body 가 nil 이면 아무것도 붙지 않는다.
+		clirun.AddBodyFlag(sub, c.Body)
 {{- range .Params}}
 		sub.Flags().String({{printf "%q" .Name}}, "", {{printf "%q" (printf "%s - %s" .In .Type)}})
 {{- if .Required}}

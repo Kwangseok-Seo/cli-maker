@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Kwangseok-Seo/cli-maker/clirun"
 	"github.com/Kwangseok-Seo/cli-maker/internal/cli"
 	"github.com/Kwangseok-Seo/cli-maker/internal/manifest"
 	"github.com/spf13/cobra"
@@ -40,6 +41,12 @@ func probeManifest() *manifest.Manifest {
 					{Name: `say"hi`, In: "query", Type: `C:\temp`},
 					{Name: "multi", In: "query", Type: "two\nlines"},
 				},
+			},
+			{
+				// 본문을 받는 명령. Body 가 nil 인 위 셋과 나란히 둬서, --data 가
+				// 이 명령에만 붙는지가 한 매니페스트 안에서 대조된다.
+				Name: "send", Method: "POST", Path: "/send",
+				Body: &manifest.Body{Required: true, ContentType: "text/plain"},
 			},
 		},
 	}
@@ -176,6 +183,37 @@ func TestSurfaceMatchesRuntime(t *testing.T) {
 	}
 }
 
+// TestGeneratedCarriesBody 는 매니페스트의 body: 절이 생성된 소스까지 값 그대로
+// 실려 가는지 본다.
+//
+// TestSurfaceMatchesRuntime 이 못 잡는 자리다 — ContentType 은 flag 표면에 나타나지
+// 않으므로 템플릿에서 통째로 빠져도 명령·flag 개수가 그대로다. 그러면 요청의
+// Content-Type 만 조용히 기본값으로 바뀐다.
+func TestGeneratedCarriesBody(t *testing.T) {
+	m := probeManifest()
+
+	var buf bytes.Buffer
+	if err := Main(&buf, m, "apis/probe.yaml"); err != nil {
+		t.Fatalf("Main() 에러: %v", err)
+	}
+
+	got := parseSurface(t, buf.Bytes())
+	if len(got) != len(m.Commands) {
+		t.Fatalf("명령 개수: 생성물 %d, 매니페스트 %d", len(got), len(m.Commands))
+	}
+
+	for i, c := range m.Commands {
+		switch {
+		case c.Body == nil && got[i].Body != nil:
+			t.Errorf("commands[%d] %q: 생성물에 Body 가 있다 (%+v) — 매니페스트엔 없다", i, c.Name, *got[i].Body)
+		case c.Body != nil && got[i].Body == nil:
+			t.Errorf("commands[%d] %q: 생성물에 Body 가 없다 — 매니페스트엔 %+v", i, c.Name, *c.Body)
+		case c.Body != nil && *got[i].Body != *c.Body:
+			t.Errorf("commands[%d] %q: Body 생성물 %+v, 매니페스트 %+v", i, c.Name, *got[i].Body, *c.Body)
+		}
+	}
+}
+
 type flagSpec struct {
 	Name     string
 	Usage    string
@@ -186,6 +224,10 @@ type cmdSurface struct {
 	Use   string
 	Short string
 	Flags []flagSpec
+	// Body 는 생성된 소스에서 읽어 낸 것만 채워진다. cobra 트리에는 남지 않는
+	// 값이라 runtimeSurface 는 이 자리를 비워 두고, TestGeneratedCarriesBody 가
+	// 매니페스트와 직접 대조한다.
+	Body *manifest.Body
 }
 
 // runtimeSurface 는 런타임 인터프리터가 세운 cobra 트리에서 표면을 읽는다.
@@ -234,28 +276,38 @@ func parseBlock(t *testing.T, block *ast.BlockStmt) cmdSurface {
 
 	var s cmdSurface
 	required := map[string]bool{}
+	addsBodyFlag := false
 
 	ast.Inspect(block, func(n ast.Node) bool {
 		switch v := n.(type) {
 		case *ast.CompositeLit:
-			// &clirun.Command{...} 도 여기 걸리므로 cobra.Command 만 본다.
-			if !isCobraCommand(v.Type) {
-				return true
-			}
-			for _, elt := range v.Elts {
-				kv, ok := elt.(*ast.KeyValueExpr)
-				if !ok {
-					continue
+			switch {
+			case isSel(v.Type, "cobra", "Command"):
+				for _, elt := range v.Elts {
+					kv, ok := elt.(*ast.KeyValueExpr)
+					if !ok {
+						continue
+					}
+					key, ok := kv.Key.(*ast.Ident)
+					if !ok {
+						continue
+					}
+					switch key.Name {
+					case "Use":
+						s.Use = mustString(t, kv.Value)
+					case "Short":
+						s.Short = mustString(t, kv.Value)
+					}
 				}
-				key, ok := kv.Key.(*ast.Ident)
-				if !ok {
-					continue
-				}
-				switch key.Name {
-				case "Use":
-					s.Use = mustString(t, kv.Value)
-				case "Short":
-					s.Short = mustString(t, kv.Value)
+			case isSel(v.Type, "clirun", "Command"):
+				for _, elt := range v.Elts {
+					kv, ok := elt.(*ast.KeyValueExpr)
+					if !ok {
+						continue
+					}
+					if key, ok := kv.Key.(*ast.Ident); ok && key.Name == "Body" {
+						s.Body = parseBody(t, kv.Value)
+					}
 				}
 			}
 		case *ast.CallExpr:
@@ -271,6 +323,8 @@ func parseBlock(t *testing.T, block *ast.BlockStmt) cmdSurface {
 				})
 			case sel.Sel.Name == "MarkFlagRequired" && len(v.Args) == 1:
 				required[mustString(t, v.Args[0])] = true
+			case sel.Sel.Name == "AddBodyFlag":
+				addsBodyFlag = true
 			}
 		}
 		return true
@@ -279,17 +333,69 @@ func parseBlock(t *testing.T, block *ast.BlockStmt) cmdSurface {
 	for i := range s.Flags {
 		s.Flags[i].Required = required[s.Flags[i].Name]
 	}
+
+	// 본문 flag 의 이름·usage·필수 여부를 여기서 다시 적지 않는다. 생성된 소스가
+	// AddBodyFlag 를 부르면, 소스에서 읽어 낸 Body 로 **그 함수를 실제로 불러** 무엇이
+	// 붙는지 본다 — 런타임 쪽과 같은 출처다. 템플릿이 호출을 빠뜨리면 flag 가 안 붙어
+	// 개수가 어긋나고, Body 를 잘못 적으면 필수 여부가 어긋난다.
+	if addsBodyFlag {
+		probe := &cobra.Command{Use: "probe"}
+		clirun.AddBodyFlag(probe, s.Body)
+		probe.Flags().VisitAll(func(f *pflag.Flag) {
+			_, req := f.Annotations[cobra.BashCompOneRequiredFlag]
+			s.Flags = append(s.Flags, flagSpec{Name: f.Name, Usage: f.Usage, Required: req})
+		})
+	}
+
 	sortFlags(s.Flags)
 	return s
 }
 
-func isCobraCommand(e ast.Expr) bool {
+// isSel 은 e 가 pkg.name 형태인지 본다 (cobra.Command, clirun.Body 등).
+func isSel(e ast.Expr, pkg, name string) bool {
 	sel, ok := e.(*ast.SelectorExpr)
 	if !ok {
 		return false
 	}
-	pkg, ok := sel.X.(*ast.Ident)
-	return ok && pkg.Name == "cobra" && sel.Sel.Name == "Command"
+	id, ok := sel.X.(*ast.Ident)
+	return ok && id.Name == pkg && sel.Sel.Name == name
+}
+
+// parseBody 는 &clirun.Body{Required: …, ContentType: …} 를 값으로 되돌린다.
+func parseBody(t *testing.T, e ast.Expr) *manifest.Body {
+	t.Helper()
+
+	unary, ok := e.(*ast.UnaryExpr)
+	if !ok || unary.Op != token.AND {
+		t.Fatalf("Body 가 &clirun.Body{…} 가 아니다: %T", e)
+	}
+	lit, ok := unary.X.(*ast.CompositeLit)
+	if !ok || !isSel(lit.Type, "clirun", "Body") {
+		t.Fatalf("Body 의 타입이 clirun.Body 가 아니다: %v", unary.X)
+	}
+
+	b := &manifest.Body{}
+	for _, elt := range lit.Elts {
+		kv, ok := elt.(*ast.KeyValueExpr)
+		if !ok {
+			continue
+		}
+		key, ok := kv.Key.(*ast.Ident)
+		if !ok {
+			continue
+		}
+		switch key.Name {
+		case "Required":
+			id, ok := kv.Value.(*ast.Ident)
+			if !ok {
+				t.Fatalf("Required 가 bool 리터럴이 아니다: %v", kv.Value)
+			}
+			b.Required = id.Name == "true"
+		case "ContentType":
+			b.ContentType = mustString(t, kv.Value)
+		}
+	}
+	return b
 }
 
 // mustString 은 리터럴을 값으로 되돌린다. %q 로 인용해 넣은 것이 그대로

@@ -46,18 +46,23 @@ import (
 // 이 목록이 실제 필드와 갈리는 순간 깨진다.
 //
 //	Manifest — Name, BaseURL string · Auth Auth · Commands []Command
-//	Command  — Name, Method, Path string · Params []Param
+//	Command  — Name, Method, Path string · Params []Param · Body *Body
 //	Param    — Name, In, Type string · Required bool
 //	Auth     — Type, Env string
+//	Body     — Required bool · ContentType string
 //
 // Method 는 대문자 HTTP 메서드, In 은 "path" 또는 "query" 다. Path 의 자리표시자
 // {이름} 은 같은 이름의 path param 이 있어야 채워지고, 그 param 은 Required 여야
 // 한다 — 안 그러면 빈 문자열이 치환된 URL 이 나간다.
+//
+// Command.Body 는 포인터다 — nil 이면 그 명령은 요청 본문을 받지 않는다. 값 struct
+// 로 두면 "본문 없음"과 "본문을 받지만 아무것도 안 적음"이 파싱 후에 구별되지 않는다.
 type (
 	Manifest = manifest.Manifest
 	Command  = manifest.Command
 	Param    = manifest.Param
 	Auth     = manifest.Auth
+	Body     = manifest.Body
 )
 
 // Run 은 API 명령 하나를 실행한다.
@@ -77,6 +82,11 @@ func Run(cmd *cobra.Command, m *Manifest, c *Command) error {
 		values[p.Name], _ = cmd.Flags().GetString(p.Name)
 	}
 
+	body, err := resolveBody(cmd, c)
+	if err != nil {
+		return err
+	}
+
 	timeout, err := resolveTimeout(cmd)
 	if err != nil {
 		return err
@@ -90,5 +100,6 @@ func Run(cmd *cobra.Command, m *Manifest, c *Command) error {
 	ctx, cancel := context.WithTimeout(cmd.Context(), timeout)
 	defer cancel()
 
-	return executor.Execute(ctx, m, c, values, f, cmd.OutOrStdout(), cmd.ErrOrStderr())
+	call := executor.Call{Manifest: m, Command: c, Values: values, Body: body}
+	return executor.Execute(ctx, call, f, cmd.OutOrStdout(), cmd.ErrOrStderr())
 }

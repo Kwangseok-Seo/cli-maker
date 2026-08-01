@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -97,7 +98,8 @@ func TestExecute(t *testing.T) {
 			values := map[string]string{"owner": "spf13", "sort": "stars"}
 
 			var out, errOut bytes.Buffer
-			err := Execute(t.Context(), m, testCommand(), values, tt.f, &out, &errOut)
+			call := Call{Manifest: m, Command: testCommand(), Values: values}
+			err := Execute(t.Context(), call, tt.f, &out, &errOut)
 
 			if tt.wantErr == "" {
 				if err != nil {
@@ -201,7 +203,8 @@ func TestExecuteAuth(t *testing.T) {
 			values := map[string]string{"owner": "spf13"}
 
 			var out, errOut bytes.Buffer
-			if err := Execute(t.Context(), m, testCommand(), values, format.Raw{}, &out, &errOut); err != nil {
+			call := Call{Manifest: m, Command: testCommand(), Values: values}
+			if err := Execute(t.Context(), call, format.Raw{}, &out, &errOut); err != nil {
 				t.Fatalf("Execute() 에러: %v", err)
 			}
 
@@ -241,7 +244,7 @@ func TestExecuteHonorsContextTimeout(t *testing.T) {
 	c := &manifest.Command{Name: "slow", Method: "GET", Path: "/"}
 
 	var out, errOut bytes.Buffer
-	err := Execute(ctx, m, c, nil, format.Raw{}, &out, &errOut)
+	err := Execute(ctx, Call{Manifest: m, Command: c}, format.Raw{}, &out, &errOut)
 
 	if err == nil {
 		t.Fatal("Execute() = nil, want 타임아웃 에러")
@@ -252,5 +255,105 @@ func TestExecuteHonorsContextTimeout(t *testing.T) {
 	}
 	if out.Len() != 0 {
 		t.Errorf("out = %q, want 빈 값 (본문이 오기 전에 끊겼어야 한다)", out.String())
+	}
+}
+
+// TestExecuteSendsBody 는 본문이 선을 타고 서버까지 가는지, 그리고 **어떤 모양으로**
+// 가는지를 못 박는다. 판정은 늘 서버가 받은 것으로 한다.
+//
+// 두 번째 케이스가 요점이다 — 넘긴 값이 같은 io.Reader 인터페이스인데도 구체 타입이
+// 무엇이냐에 따라 Content-Length 로 나가느냐 chunked 로 나가느냐가 갈린다.
+// 인터페이스만 보고 "같은 것"이라 여기면 놓치는 자리다.
+func TestExecuteSendsBody(t *testing.T) {
+	const payload = `{"name":"rex"}`
+
+	tests := []struct {
+		name string
+		// body 는 Execute 에 넘길 리더. nil 이면 본문 없는 요청.
+		body io.Reader
+		// cmdBody 는 매니페스트의 body: 절. Content-Type 의 출처다.
+		cmdBody *manifest.Body
+
+		wantBody          string
+		wantContentType   string
+		wantContentLength int64
+		wantChunked       bool
+	}{
+		{
+			name:              "strings.Reader 는 길이를 알려 준다",
+			body:              strings.NewReader(payload),
+			cmdBody:           &manifest.Body{Required: true},
+			wantBody:          payload,
+			wantContentType:   "application/json",
+			wantContentLength: int64(len(payload)),
+		},
+		{
+			// io.NopCloser 가 감싸면 동적 타입이 *strings.Reader 가 아니게 되어
+			// http.NewRequest 의 길이 탐지가 빗나간다. 내용은 같은데 전송 모양이 다르다.
+			name:              "감싸인 리더는 chunked 로 나간다",
+			body:              io.NopCloser(strings.NewReader(payload)),
+			cmdBody:           &manifest.Body{Required: true},
+			wantBody:          payload,
+			wantContentType:   "application/json",
+			wantContentLength: -1,
+			wantChunked:       true,
+		},
+		{
+			// contentType 을 적으면 기본값(application/json) 대신 그것이 붙는다.
+			name:              "매니페스트의 contentType 이 이긴다",
+			body:              strings.NewReader("a=1"),
+			cmdBody:           &manifest.Body{ContentType: "application/x-www-form-urlencoded"},
+			wantBody:          "a=1",
+			wantContentType:   "application/x-www-form-urlencoded",
+			wantContentLength: 3,
+		},
+		{
+			// 본문 없는 요청에 Content-Type 을 붙이는 것은 거짓말이다.
+			name:            "본문이 없으면 Content-Type 도 안 붙는다",
+			body:            nil,
+			cmdBody:         nil,
+			wantContentType: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var gotBody []byte
+			var gotType string
+			var gotLen int64
+			var gotChunked bool
+
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				gotBody, _ = io.ReadAll(r.Body)
+				gotType = r.Header.Get("Content-Type")
+				// 서버가 본 ContentLength 다 — chunked 면 길이를 모르므로 -1 이 온다.
+				gotLen = r.ContentLength
+				gotChunked = slices.Contains(r.TransferEncoding, "chunked")
+				io.WriteString(w, "ok")
+			}))
+			t.Cleanup(srv.Close)
+
+			m := &manifest.Manifest{Name: "pstore", BaseURL: srv.URL}
+			c := &manifest.Command{Name: "addPet", Method: "POST", Path: "/pet", Body: tt.cmdBody}
+
+			var out, errOut bytes.Buffer
+			call := Call{Manifest: m, Command: c, Body: tt.body}
+			if err := Execute(t.Context(), call, format.Raw{}, &out, &errOut); err != nil {
+				t.Fatalf("Execute() 에러: %v", err)
+			}
+
+			if string(gotBody) != tt.wantBody {
+				t.Errorf("서버가 받은 본문 = %q, want %q", gotBody, tt.wantBody)
+			}
+			if gotType != tt.wantContentType {
+				t.Errorf("서버가 받은 Content-Type = %q, want %q", gotType, tt.wantContentType)
+			}
+			if gotLen != tt.wantContentLength {
+				t.Errorf("서버가 본 ContentLength = %d, want %d", gotLen, tt.wantContentLength)
+			}
+			if gotChunked != tt.wantChunked {
+				t.Errorf("chunked = %v, want %v (TransferEncoding 이 바뀌었다)", gotChunked, tt.wantChunked)
+			}
+		})
 	}
 }

@@ -22,8 +22,8 @@ import (
 func TestAliasFieldsAreDocumented(t *testing.T) {
 	doc := aliasDoc(t)
 
-	// 별칭 넷을 zero value 로 만들어 실제 필드를 물어본다.
-	for _, v := range []any{Manifest{}, Command{}, Param{}, Auth{}} {
+	// 별칭 전부를 zero value 로 만들어 실제 필드를 물어본다.
+	for _, v := range []any{Manifest{}, Command{}, Param{}, Auth{}, Body{}} {
 		rt := reflect.TypeOf(v)
 		for f := range rt.Fields() {
 			if !strings.Contains(doc, f.Name) {

@@ -30,7 +30,18 @@ func Build(m *manifest.Manifest) *cobra.Command {
 			},
 		}
 
+		// 본문 flag 를 param 보다 먼저 단다. 등록을 clirun 에 맡기므로 생성된 CLI 와
+		// 이름·usage·필수 여부가 갈릴 수 없다.
+		clirun.AddBodyFlag(sub, c.Body)
+
 		for _, p := range c.Params {
+			// pflag 는 같은 이름을 두 번 받으면 패닉이다. 이름이 이미 잡혀 있으면 등록하지
+			// 않는다 — 그 매니페스트는 checkGlobal 이 통째로 거절하므로(ADR-0007) 여기서
+			// 조용히 빠진 flag 가 유저에게 도달하지 않는다. Build 는 패닉 없이 돌아가는
+			// 것만 책임지고, 보고는 checkGlobal 이 한다.
+			if sub.Flags().Lookup(p.Name) != nil {
+				continue
+			}
 			sub.Flags().String(p.Name, "", p.In+" - "+p.Type)
 			if p.Required {
 				sub.MarkFlagRequired(p.Name)
