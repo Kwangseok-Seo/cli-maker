@@ -96,6 +96,25 @@ cmd.Flags().GetString(p.Name)                       // 읽기 (Run 시점)
 - 등록은 `&cobra.Command{...}` 리터럴 **밖**에서 — 리터럴은 표현식이라 `for` 를 품을 수 없다 → [[composite-literals]].
 - `MarkFlagRequired` 는 파싱 때 막아 줄 뿐 **`--help` 에는 표시되지 않는다.** 필수임을 보이려면 도움말 문자열에 직접 적어야 한다.
 
+## Changed — "안 줬다"와 "빈 값을 줬다" (M10)
+
+```go
+cmd.Flags().Changed("data")     // 유저가 이 flag 를 명령줄에 적었는가
+cmd.Flags().GetString("data")   // 그 값 (안 적었으면 등록 시 기본값)
+```
+
+값만 읽으면 `--data ""` 와 `--data` 를 아예 안 준 것이 같아진다. pflag 는 "설정됐는지"를 값과 **별도로** 기록해 두고 `Changed` 로 내준다 → [[absent-vs-empty]].
+
+## 같은 명령에 같은 이름 flag = 패닉 (M10)
+
+```
+panic: withBody flag redefined: data
+```
+
+`PersistentFlags()` 로 그룹에 단 flag 는 같은 이름의 자식 flag 가 **가리기만** 한다. 그런데 같은 `Flags()` 에 같은 이름을 두 번 등록하면 pflag 가 패닉한다 — 무관한 명령까지 함께 죽는다(M6 의 중복 param 과 같은 부류).
+
+그래서 cli-maker 는 등록 시점에 `Flags().Lookup(name) != nil` 로 갈라 패닉을 막고, 그 사실을 검증기가 따로 보고한다. **가드만 있으면 유저가 적은 param 이 조용히 사라지고, 검사만 있으면 보고하기 전에 패닉한다** — 둘 다 있어야 "그 파일만 빠지고 이유를 말한다"가 된다 → [[M10]].
+
 ## 관련
 
-[[structs]] · [[pointers]] · [[functions-as-values]] · [[go-modules]] · [[closures]] · [[composite-literals]] · [[context]] · [[error-handling]]
+[[structs]] · [[pointers]] · [[functions-as-values]] · [[go-modules]] · [[closures]] · [[composite-literals]] · [[context]] · [[error-handling]] · [[absent-vs-empty]]

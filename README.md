@@ -13,7 +13,7 @@
 
 ## 상태
 
-M9 완료 — 매니페스트로 만들어진 명령이 **실제 API 를 호출**하고, **환경변수의 토큰으로 인증**하며, **보는 사람에 맞춰 출력을 냅니다**. 그 약속들을 **테스트가 지키고**, 이제 매니페스트를 **그 API 전용 독립 바이너리로 뽑아낼 수도** 있습니다.
+M10 완료 — 매니페스트로 만들어진 명령이 **실제 API 를 호출**하고, **환경변수의 토큰으로 인증**하며, **보는 사람에 맞춰 출력을 냅니다**. 이제 **요청 본문도 보낼 수 있고**, 그 약속들을 **테스트가 지키며**, 매니페스트를 **그 API 전용 독립 바이너리로 뽑아낼 수도** 있습니다.
 
 ```
 $ cli-maker gh --help
@@ -50,6 +50,38 @@ $ cli-maker gh repo --owner spf13 --repo cobra | jq -r .stargazers_count
 `-o raw|pretty|compact` 로 직접 고를 수 있습니다. 응답이 JSON 이 아니면(`cli-maker gh zen` 은 평문 한 줄) 원본을 그대로 내보내고 종료 코드도 건드리지 않습니다 — 명시한 경우에만 stderr 로 한 줄 알립니다.
 
 요청 타임아웃은 세 층에서 정해집니다 — `--timeout 5s` > `CLI_MAKER_TIMEOUT=60s` > 기본 30초.
+
+## 요청 본문
+
+매니페스트에 `body:` 를 적은 명령에만 `--data` 가 붙습니다 ([ADR-0010](docs/adr/0010-request-body-as-command-field.md)). 본문은 이름 붙은 입력이 아니므로 Param 이 아니라 Command 의 필드입니다 — OpenAPI 도 2.0 의 `in: body` 파라미터에서 3.0 의 `requestBody` 별도 필드로 옮겨갔습니다.
+
+```yaml
+commands:
+  - name: addPet
+    method: POST
+    path: /pet
+    body:
+      required: true                 # --data 를 안 주면 요청 전에 막힌다
+      contentType: application/json  # 생략하면 application/json
+```
+
+curl 계보의 세 입력원을 받습니다.
+
+```
+$ cli-maker pstore addPet --data '{"name":"rex"}'          # 리터럴
+$ cli-maker pstore addPet --data @pet.json                 # 파일
+$ echo '{"name":"rex"}' | cli-maker pstore addPet --data - # stdin
+
+$ cli-maker pstore addPet
+Error: required flag(s) "data" not set        ← 요청은 나가지 않습니다
+
+$ cli-maker pstore getPetById --petId 1 --data x
+Error: unknown flag: --data                   ← body: 가 없는 명령엔 flag 자체가 없습니다
+```
+
+`--data ''` 는 **빈 본문을 보냅니다** — `--data` 를 아예 안 준 것(본문 없음)과 다릅니다. stdin 의 개행은 지우지 않습니다(curl 의 `--data-binary` 쪽 동작) — 지우는 것은 payload 를 조용히 바꾸는 일이라서입니다.
+
+어떤 입력원이든 본문을 다 읽어 길이를 알 수 있는 형태로 보냅니다. 스트리밍으로 흘리면 요청이 `chunked` 로 나가고 리다이렉트 재전송이 조용히 실패합니다.
 
 `apis/` 에 매니페스트 YAML(`.yaml` 또는 `.yml`)을 하나 더 떨어뜨리면 **재컴파일 없이** 새 API 명령이 생깁니다 ([ADR-0003](docs/adr/0003-dynamic-command-surface.md)).
 
@@ -123,7 +155,9 @@ Go 1.26+ 필요.
 | **M7** ✅ | 출력 포맷 (`-o raw\|pretty\|compact`) | encoding/json, 인터페이스, 타입 단언 |
 | **M8** ✅ | 테스트 | table-driven test, httptest |
 | **M9** ✅ | `generate` (코드 생성) | text/template, `//go:embed`, go/ast, 타입 별칭 |
-| 이후 | OpenAPI 임포트 · 배포 | — |
+| **M10** ✅ | 요청 본문 (`--data`) | 값 vs 포인터, `io.Reader` 를 요청 쪽으로, chunked |
+| **M11** | OpenAPI 임포트 | map 의 무순서, 부분 디코드, `yaml.Marshal` |
+| 이후 | 배포 | — |
 
 > 각 마일스톤에서 쌓은 이론·문법·겪은 함정은 [`docs/learn/`](docs/learn/) 에 개념별 지식베이스로 정리합니다 — "무엇을 배웠나"의 실증.
 
