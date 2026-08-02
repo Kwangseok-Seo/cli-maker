@@ -234,6 +234,8 @@ Go 1.26+ 필요.
 
 MIT — [LICENSE](LICENSE). `generate` 가 낸 소스는 당신 것입니다(위 참조).
 
-의존성은 전부 permissive 이지만 MIT 는 아닙니다 — cobra·mousetrap Apache-2.0, pflag BSD-3-Clause, yaml.v3 MIT+Apache-2.0. 소스로 쓸 때는 추가 의무가 없고, **바이너리를 배포할 때** 그쪽 고지가 필요합니다.
+의존성은 전부 permissive 이지만 MIT 는 아닙니다 — cobra·mousetrap Apache-2.0, pflag BSD-3-Clause, yaml.v3 MIT+Apache-2.0. 소스로 쓸 때는 추가 의무가 없고, **바이너리를 배포할 때** 그쪽 고지가 필요합니다. Go 는 정적 링크라 실행 파일 하나에 그 코드가 전부 들어가기 때문입니다.
+
+그래서 릴리스 아카이브에는 `THIRD-PARTY-NOTICES.md` 가 함께 들어갑니다. 그 파일은 빌드 시 `go list -deps` 가 보고한 **실제 링크 대상**에서 생성되므로 의존성이 바뀌면 따라 바뀌고, `go.mod` 에만 있고 바이너리엔 안 들어가는 것(테스트용 blackfriday·check.v1)은 빠집니다. `gopkg.in/yaml.v3` 의 `NOTICE` 도 함께 실립니다 — Apache-2.0 §4(d) 가 요구합니다.
 
 테스트 fixture `internal/openapi/testdata/petstore.json` 은 [Swagger Petstore](https://petstore3.swagger.io/api/v3/openapi.json) 명세 원본(v1.0.27)이며, 그 문서가 `info.license` 에 스스로 밝힌 대로 Apache-2.0 입니다 — 테스트에서만 읽고 바이너리에는 들어가지 않습니다.

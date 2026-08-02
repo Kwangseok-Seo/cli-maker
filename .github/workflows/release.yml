@@ -40,6 +40,51 @@ jobs:
       - name: 테스트
         run: go test ./...
 
+      - name: 서드파티 고지 생성
+        # Go 는 정적 링크라 바이너리 하나에 cobra·pflag·yaml·mousetrap 의 코드가 들어간다.
+        # 그 파일을 배포하는 순간 각 라이선스의 고지 조건이 켜진다 (소스만 줄 때는 안 켜진다).
+        #
+        # 모듈 이름을 여기 적지 않고 go list 에게 묻는다 — 손으로 적으면 의존성이 바뀔 때
+        # 조용히 뒤처지고, 그 조용함이 곧 조건 위반이다. `-deps` 는 **실제로 링크되는 것**만
+        # 보고하므로 go.mod 에만 있는 테스트용 의존성(blackfriday·check.v1)은 빠진다.
+        #
+        # go-licenses 를 쓰지 않은 이유: yaml.v3 를 MIT 로만 판정해 NOTICE 를 놓쳤다.
+        # 그 모듈은 MIT + Apache-2.0 이고 Apache-2.0 §4(d) 가 NOTICE 전달을 요구한다.
+        # 파일을 그대로 싣는 쪽은 판정을 하지 않으므로 그런 실수를 할 수 없다.
+        run: |
+          set -euo pipefail
+          out=THIRD-PARTY-NOTICES.md
+          main=$(go list -m)
+          {
+            echo "# 서드파티 고지"
+            echo
+            echo "cli-maker 바이너리에는 아래 오픈소스가 정적 링크되어 있습니다. 각 저작권자와"
+            echo "라이선스 전문을 그대로 싣습니다. 이 목록은 빌드 시 \`go list -deps\` 가 보고한"
+            echo "실제 링크 대상에서 생성되므로, 의존성이 바뀌면 함께 바뀝니다."
+            echo
+          } > "$out"
+
+          # 파이프 대신 리다이렉션으로 읽는다 — 파이프의 while 은 서브셸이라 exit 이
+          # 이 step 을 멈추지 못한다.
+          go list -deps -f '{{if not .Standard}}{{.Module.Path}}|{{.Module.Version}}|{{.Module.Dir}}{{end}}' . \
+            | sort -u > /tmp/mods
+          while IFS='|' read -r path ver dir; do
+            [ "$path" = "$main" ] && continue
+            [ -z "$dir" ] && continue
+            { echo "## $path $ver"; echo; } >> "$out"
+            found=0
+            for f in "$dir"/LICEN[CS]E* "$dir"/NOTICE*; do
+              [ -f "$f" ] || continue
+              { echo "### $(basename "$f")"; echo; echo '```'; cat "$f"; echo '```'; echo; } >> "$out"
+              found=1
+            done
+            if [ "$found" = 0 ]; then
+              echo "::error::$path 의 라이선스 파일을 못 찾았다 — 손으로 확인해야 한다"
+              exit 1
+            fi
+            echo "고지 수집: $path $ver"
+          done < /tmp/mods
+
       - name: 크로스 컴파일
         env:
           # 태그로 트리거되면 태그 이름, workflow_dispatch 면 브랜치 이름이 온다.
@@ -54,11 +99,12 @@ jobs:
             mkdir -p "$stage"
             CGO_ENABLED=0 GOOS=$os GOARCH=$arch \
               go build -trimpath -ldflags "-s -w" -o "$stage/cli-maker$ext" .
-            cp LICENSE README.md "$stage/"
+            cp LICENSE README.md THIRD-PARTY-NOTICES.md "$stage/"
             if [ "$os" = windows ]; then
               (cd "$stage" && zip -q "$GITHUB_WORKSPACE/dist/cli-maker_${VERSION}_${os}_${arch}.zip" ./*)
             else
-              tar -czf "dist/cli-maker_${VERSION}_${os}_${arch}.tar.gz" -C "$stage" cli-maker LICENSE README.md
+              tar -czf "dist/cli-maker_${VERSION}_${os}_${arch}.tar.gz" \
+                -C "$stage" cli-maker LICENSE README.md THIRD-PARTY-NOTICES.md
             fi
           done
           (cd dist && sha256sum cli-maker_* > checksums.txt)
@@ -99,6 +145,10 @@ jobs:
             -rwx*) ;;
             *) echo "::error::실행 비트가 없다: $mode"; exit 1 ;;
           esac
+          # 고지가 실제로 아카이브 안에 있어야 조건이 충족된다. 만들어 놓고 안 넣으면
+          # 만들지 않은 것과 같다.
+          tar -tzf dist/cli-maker_*_linux_amd64.tar.gz | grep -q '^THIRD-PARTY-NOTICES.md$' || {
+            echo "::error::서드파티 고지가 아카이브에 없다"; exit 1; }
 
       - uses: actions/upload-artifact@v7
         with:

@@ -2,6 +2,11 @@
 /cli-maker
 /cli-maker.exe
 
+# 릴리스 산출물 — 고지는 빌드 시 go list 로 생성한다 (커밋하면 의존성과 갈린다)
+/THIRD-PARTY-NOTICES.md
+/dist/
+/stage/
+
 # 테스트 / 커버리지 산출물
 *.test
 *.out
