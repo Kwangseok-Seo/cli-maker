@@ -17,3 +17,4 @@
 | [0011](0011-importer-reads-five-places-directly.md) | 임포터는 Spec 의 다섯 자리만 직접 읽는다 | accepted |
 | [0012](0012-import-output-is-a-deterministic-draft.md) | 임포트 산출물은 저자 순서를 버리고, 못 옮기는 것은 required 여부로 가른다 | accepted |
 | [0013](0013-manifest-discovery-paths.md) | 매니페스트는 여러 디렉토리에서 찾고, 합집합으로 다루며, 가까운 쪽이 이긴다 | accepted |
+| [0014](0014-publish-when-the-surface-grows.md) | 마일스톤이 유저 표면을 늘리면 그 자리에서 발행한다 | accepted |
