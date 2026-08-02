@@ -182,7 +182,7 @@ $ ./gh repo --owner spf13 --repo cobra -o compact
 
 ```
 $ sha256sum -c checksums.txt        # 받은 것 검증
-cli-maker_v0.2.0_linux_amd64.tar.gz: OK
+cli-maker_v0.3.0_linux_amd64.tar.gz: OK
 ```
 
 **Go 로** —
@@ -195,7 +195,7 @@ Go 1.26+ 필요. 설치한 뒤 무엇을 받았는지는 `--version` 으로 확�
 
 ```
 $ cli-maker --version
-cli-maker v0.2.0 (go1.26.3 windows/amd64)
+cli-maker v0.3.0 (go1.26.3 windows/amd64)
 ```
 
 버전 문자열은 소스 어디에도 적혀 있지 않습니다 — go 도구가 빌드할 때 박아 둔 것을 읽습니다. 그래서 저장소를 클론해 직접 빌드하면 태그 대신 커밋을 가리키는 pseudo-version 이 나오고, 커밋 안 된 변경이 섞여 있으면 뒤에 `+dirty` 가 붙습니다.
