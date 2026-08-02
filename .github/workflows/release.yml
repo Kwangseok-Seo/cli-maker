@@ -1,0 +1,102 @@
+# 태그를 밀면 크로스 컴파일한 바이너리를 릴리스에 붙인다.
+#
+# M12d 에서 손으로 하던 절차를 그대로 옮긴 것이고, 옮긴 이유가 둘 있다. Windows 에서
+# 만든 tar 는 바이너리에 실행 비트가 안 붙고(Git Bash 의 chmod 가 NTFS 에서 안 먹는다),
+# GNU tar 가 `C:` 를 원격 호스트로 읽어 --force-local 이 필요했다. 리눅스 러너에서는
+# 둘 다 문제가 아니다.
+name: release
+
+on:
+  push:
+    tags: ['v*']
+  # 태그를 새로 파지 않고 시험하기 위한 입구. 이때는 릴리스를 만들지 않고
+  # artifact 까지만 올린다 (아래 release step 의 if 참조).
+  workflow_dispatch:
+
+# 이걸 적지 않으면 GITHUB_TOKEN 이 repo 기본값인 read 로 발급돼 릴리스 생성이 403 이다.
+# 여기 적은 것 외의 모든 권한(issues·packages·actions …)은 none 이 된다.
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          # 버전을 여기 적지 않고 go.mod 에게 묻는다. 적어 두면 go.mod 를 올릴 때
+          # 이 파일이 조용히 뒤처진다.
+          go-version-file: go.mod
+
+      - name: 테스트
+        run: go test ./...
+
+      - name: 크로스 컴파일
+        env:
+          # 태그로 트리거되면 태그 이름, workflow_dispatch 면 브랜치 이름이 온다.
+          VERSION: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          for t in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64; do
+            os=${t%/*}; arch=${t#*/}
+            ext=""; [ "$os" = windows ] && ext=".exe"
+            stage="stage/${os}_${arch}"
+            mkdir -p "$stage"
+            CGO_ENABLED=0 GOOS=$os GOARCH=$arch \
+              go build -trimpath -ldflags "-s -w" -o "$stage/cli-maker$ext" .
+            cp LICENSE README.md "$stage/"
+            if [ "$os" = windows ]; then
+              (cd "$stage" && zip -q "$GITHUB_WORKSPACE/dist/cli-maker_${VERSION}_${os}_${arch}.zip" ./*)
+            else
+              tar -czf "dist/cli-maker_${VERSION}_${os}_${arch}.tar.gz" -C "$stage" cli-maker LICENSE README.md
+            fi
+          done
+          (cd dist && sha256sum cli-maker_* > checksums.txt)
+          ls -la dist
+
+      - name: 버전이 박혔는지 확인
+        run: |
+          set -euo pipefail
+          # 러너가 linux/amd64 이므로 그 바이너리는 여기서 실행된다.
+          V=$(./stage/linux_amd64/cli-maker --version)
+          echo "$V"
+          # (devel) 이면 vcs 스탬핑이 안 된 것이다 — M12d 에서 git worktree 로 빌드했다가
+          # 겪었다. 얕은 체크아웃에서도 같은 일이 나는지는 돌려 봐야 알고, 나면 여기서
+          # 멈춰야 한다. 버전 없는 바이너리가 릴리스에 붙는 것보다 실패가 낫다.
+          case "$V" in
+            *'(devel)'*)
+              echo "::error::버전이 안 박혔다 — checkout 이 태그를 안 가져왔을 수 있다 (fetch-depth)"
+              exit 1 ;;
+          esac
+          # 태그로 트리거됐다면 태그 이름과 정확히 같아야 한다.
+          if [ "${GITHUB_REF_TYPE:-}" = tag ] && ! echo "$V" | grep -qF "$GITHUB_REF_NAME"; then
+            echo "::error::태그는 $GITHUB_REF_NAME 인데 바이너리는 $V"
+            exit 1
+          fi
+
+      - name: 실행 비트 확인
+        run: |
+          set -euo pipefail
+          # M12d 에서 Windows 로 만든 첫 tar 가 -rw-r--r-- 였다. 아카이브 생성은
+          # 성공한 것처럼 보이므로 열어 봐야만 안다.
+          mode=$(tar -tzvf dist/cli-maker_*_linux_amd64.tar.gz | awk '$NF=="cli-maker"{print $1}')
+          echo "cli-maker: $mode"
+          case "$mode" in
+            -rwx*) ;;
+            *) echo "::error::실행 비트가 없다: $mode"; exit 1 ;;
+          esac
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: 릴리스에 붙인다
+        # 태그로 트리거됐을 때만. workflow_dispatch 는 위 artifact 까지만 하고 끝난다.
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --generate-notes dist/*
