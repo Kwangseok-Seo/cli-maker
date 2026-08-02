@@ -135,13 +135,32 @@ func main() {
 
 	rootCmd.AddCommand(newImportCmd())
 
-	for _, err := range cli.LoadDir(rootCmd, "apis") {
+	for _, err := range cli.LoadDirs(rootCmd, apiDirs()) {
 		fmt.Fprintln(os.Stderr, "cli-maker:", err)
 	}
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
+}
+
+// apiDirs 는 매니페스트를 찾을 디렉토리를 가까운 것부터 나열한다.
+//
+// 첫째는 프로세스 cwd 의 apis/ — 그 프로젝트 전용 API 가 놓이는 자리다.
+// 둘째는 유저 설정 디렉토리 — 설치본이 어디서 실행되든 따라오는 자리다.
+//
+// os.UserConfigDir 은 OS 마다 다른 규약을 하나로 감싼다 (Windows %AppData%, macOS
+// ~/Library/Application Support, Linux $XDG_CONFIG_HOME 또는 ~/.config). 다만 디렉토리를
+// 만들어 주지도, 앱 이름을 붙여 주지도 않는다 — cli-maker/apis 는 우리가 붙인다.
+//
+// 설정 디렉토리를 못 알아내는 환경(%AppData% 가 없는 서비스 계정 등)에서는 그 자리를
+// 건너뛴다. 발견 경로 하나가 없는 것은 실패가 아니다 — cwd 의 apis/ 만으로도 도구는 돈다.
+func apiDirs() []string {
+	dirs := []string{"apis"}
+	if cfg, err := os.UserConfigDir(); err == nil {
+		dirs = append(dirs, filepath.Join(cfg, "cli-maker", "apis"))
+	}
+	return dirs
 }
 
 // newImportCmd 는 import 명령을 만든다.

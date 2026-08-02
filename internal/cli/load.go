@@ -60,6 +60,21 @@ func LoadDir(root *cobra.Command, dir string) []error {
 	return errs
 }
 
+// LoadDirs 는 dirs 를 앞에서부터 순회하며 각 디렉토리를 LoadDir 한다.
+//
+// 앞선 디렉토리가 이긴다. 뒤 디렉토리에 같은 이름의 매니페스트가 또 있으면 checkGlobal 의
+// reservedCommand 가 "이미 쓰이고 있는 명령 이름이다" 로 걸러낸다 — 예약어를 상수로 적지
+// 않고 root 에게 물어보기 때문에(M6) 디렉토리가 늘어도 여기서 중복을 따로 볼 필요가 없다.
+//
+// 없는 디렉토리는 잘못이 아니다 — LoadDir 이 이미 os.ErrNotExist 를 nil 로 흘린다.
+func LoadDirs(root *cobra.Command, dirs []string) []error {
+	var errs []error
+	for _, dir := range dirs {
+		errs = append(errs, LoadDir(root, dir)...)
+	}
+	return errs
+}
+
 // checkGlobal 은 이미 만들어진 CLI 표면과 충돌하는지 본다.
 // 예약어 목록을 상수로 두지 않고 root 에 직접 물어본다 — 명령이나 flag 가 늘어도 저절로 따라온다.
 func checkGlobal(root, group *cobra.Command, m *manifest.Manifest) error {

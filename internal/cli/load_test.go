@@ -367,6 +367,96 @@ func TestCheckBodyFlags(t *testing.T) {
 	}
 }
 
+// TestLoadDirs 는 발견 경로가 여럿일 때의 계약을 못 박는다.
+//
+// 합집합이다 — 앞 디렉토리를 찾았다고 거기서 끝내지 않는다. 그래서 이름이 겹칠 때
+// 무슨 일이 일어나는지가 곧 계약이 된다: 앞선 쪽이 이기고, 가려진 쪽은 조용히
+// 사라지지 않고 이유가 남는다. 그 판정은 여기서 새로 짠 것이 아니다 — checkGlobal 이
+// 예약어를 root 에게 물어보므로(ADR-0007), 디렉토리가 늘어난 것만으로 따라온다.
+//
+// 환경변수는 건드리지 않는다. os.UserConfigDir 은 GOOS 마다 다른 변수를 보고
+// (windows %AppData%, darwin $HOME+접미사, unix $XDG_CONFIG_HOME) macOS 에서는
+// $HOME 을 바꿔도 뒤에 /Library/Application Support 가 강제로 붙는다. 그것을 조종하는
+// 테스트는 OS 를 옮기는 순간 깨진다 — 그래서 환경을 읽는 층(main.apiDirs)과 목록을
+// 쓰는 층(여기)을 갈랐고, 검증 가치는 후자에 있다.
+func TestLoadDirs(t *testing.T) {
+	cobra.EnableCommandSorting = false
+
+	t.Run("앞선 디렉토리가 이기고 가려진 쪽은 이유가 남는다", func(t *testing.T) {
+		near := makeAPIDir(t, map[string]string{"gh.yaml": manifestYAML("gh", "near")})
+		far := makeAPIDir(t, map[string]string{
+			"gh.yaml":   manifestYAML("gh", "far"),
+			"only.yaml": manifestYAML("only", "x"),
+		})
+
+		root := newRoot()
+		errs := LoadDirs(root, []string{near, far})
+
+		// 가려진 쪽이 조용하지 않다는 것이 이 테스트의 첫 요점이다.
+		if len(errs) != 1 {
+			t.Fatalf("에러 %d개, want 1개\n실제:\n%s", len(errs), formatErrs(errs))
+		}
+		for _, frag := range []string{"gh", "이미 쓰이고 있는"} {
+			if !strings.Contains(errs[0].Error(), frag) {
+				t.Errorf("에러에 %q 가 없다: %v", frag, errs[0])
+			}
+		}
+
+		// 뒤 디렉토리에만 있는 것도 붙는다 — 앞에서 끝냈다면 없었을 것이다.
+		if findCommand(root, "only") == nil {
+			t.Error("only 가 안 붙었다 — 뒤 디렉토리를 안 읽었다")
+		}
+
+		// 이긴 쪽이 어느 파일이었는지는 하위 명령으로만 구별된다.
+		gh := findCommand(root, "gh")
+		if gh == nil {
+			t.Fatal("gh 가 안 붙었다")
+		}
+		if findCommand(gh, "near") == nil {
+			t.Error("gh 의 하위 명령이 near 가 아니다 — 뒤 디렉토리가 이겼다")
+		}
+	})
+
+	t.Run("없는 디렉토리는 건너뛴다", func(t *testing.T) {
+		// 설정 디렉토리가 없는 것은 흔한 정상 상태다. 그것이 에러가 되면 아무 API 도
+		// 안 쓰는 유저가 매 실행마다 경고를 본다.
+		missing := filepath.Join(t.TempDir(), "없다")
+		dir := makeAPIDir(t, map[string]string{"gh.yaml": manifestYAML("gh", "x")})
+
+		root := newRoot()
+		errs := LoadDirs(root, []string{missing, dir})
+
+		if len(errs) != 0 {
+			t.Fatalf("에러 %d개, want 0개\n실제:\n%s", len(errs), formatErrs(errs))
+		}
+		if findCommand(root, "gh") == nil {
+			t.Error("없는 디렉토리 뒤의 것이 안 붙었다")
+		}
+	})
+}
+
+// makeAPIDir 는 파일들을 담은 디렉토리를 만들어 그 경로를 돌려준다.
+func makeAPIDir(t *testing.T, files map[string]string) string {
+	t.Helper()
+	dir := t.TempDir()
+	for name, body := range files {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return dir
+}
+
+// findCommand 는 parent 의 자식 중 이름이 name 인 것을 찾는다. 없으면 nil.
+func findCommand(parent *cobra.Command, name string) *cobra.Command {
+	for _, c := range parent.Commands() {
+		if c.Name() == name {
+			return c
+		}
+	}
+	return nil
+}
+
 // formatErrs 는 개수가 어긋났을 때 실제로 무엇이 왔는지 한 번에 보이기 위한 것이다.
 func formatErrs(errs []error) string {
 	var b strings.Builder
