@@ -56,6 +56,7 @@ cli-maker 를 만들며 쌓은 **Go·도구 지식**의 위키. 개념을 찾을
 - [[module-publishing]] — git 태그가 곧 발행, 되돌릴 수 없다, `@latest` 를 막는 캐시는 여러 층
 - [[cross-compilation]] — `GOOS`/`GOARCH` 둘이면 끝, `-trimpath` 는 경로를 지운다, worktree 에서는 버전이 안 박힌다
 - [[github-actions]] — 매번 새 VM, 토큰 기본값은 read, `${{ }}` 는 실행 전에 치환된다, 초록 체크가 옳음을 뜻하진 않는다
+- [[third-party-notices]] — 의무는 바이너리 배포에서 켜진다, `-deps` 와 `-m all` 은 다르다, 의존성 집합은 GOOS 마다 다르다
 
 ## 마일스톤 로그 (`milestones/`)
 

@@ -226,7 +226,7 @@ Go 1.26+ 필요.
 | **M9** ✅ | `generate` (코드 생성) | text/template, `//go:embed`, go/ast, 타입 별칭 |
 | **M10** ✅ | 요청 본문 (`--data`) | 값 vs 포인터, `io.Reader` 를 요청 쪽으로, chunked |
 | **M11** ✅ | OpenAPI 임포트 (`import`) | map 의 무순서, 부분 디코드, `yaml.Marshal` |
-| **M12** 🚧 | 배포 — 발견 경로 ✅ · `--version` ✅ · v0.2.0 발행 ✅ · 바이너리 릴리스 ✅ · CI ✅ | `os.UserConfigDir`, `debug.ReadBuildInfo`, semver·proxy, `GOOS`/`GOARCH`, GitHub Actions |
+| **M12** ✅ | 배포 — 발견 경로 · `--version` · 발행 · 바이너리 릴리스 · CI · 서드파티 고지 | `os.UserConfigDir`, `debug.ReadBuildInfo`, semver·proxy, `GOOS`/`GOARCH`, GitHub Actions |
 
 > 각 마일스톤에서 쌓은 이론·문법·겪은 함정은 [`docs/learn/`](docs/learn/) 에 개념별 지식베이스로 정리합니다 — "무엇을 배웠나"의 실증.
 
