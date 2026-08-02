@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
+	"runtime/debug"
 	"strings"
 
 	"github.com/Kwangseok-Seo/cli-maker/internal/cli"
@@ -22,12 +24,17 @@ func main() {
 	cobra.EnableCommandSorting = false
 
 	rootCmd := &cobra.Command{
-		Use:   "cli-maker",
-		Short: "여러 web API 를 하나의 CLI 로 다루는 도구",
+		Use:     "cli-maker",
+		Short:   "여러 web API 를 하나의 CLI 로 다루는 도구",
+		Version: buildVersion(),
 		Run: func(cmd *cobra.Command, args []string) {
 			fmt.Println("안녕, cli-maker! (cobra 루트 명령)")
 		},
 	}
+
+	// cobra 는 Version 이 비어 있지 않을 때만 --version 을 단다. 기본 템플릿이
+	// "cli-maker version v0.1.0" 이라 v 가 두 번 나오므로 형식만 바꾼다.
+	rootCmd.SetVersionTemplate("{{.Name}} {{.Version}}\n")
 
 	greetCmd := &cobra.Command{
 		Use:   "greet <이름>",
@@ -142,6 +149,28 @@ func main() {
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
+}
+
+// buildVersion 은 이 바이너리에 박힌 버전을 읽는다.
+//
+// 버전 문자열을 소스에 적거나 -ldflags -X 로 주입하지 않는다 — go 도구가 이미 박아 두기
+// 때문이다. 무엇이 박히는지는 어떻게 빌드했는지로 갈린다 (실측):
+//
+//	go install …@v0.1.0     v0.1.0                                태그 그대로
+//	go build (repo, 깨끗)   v0.1.1-0.20260802101701-26ab395c90b0  직전 태그 다음의 pseudo-version
+//	go build (repo, 더러움) 위와 같고 뒤에 +dirty
+//	go build (repo 밖)      (devel)                               vcs 정보가 없다
+//
+// 커밋 해시와 시각이 pseudo-version 안에 이미 들어 있으므로 vcs.revision 을 따로 꺼내지
+// 않는다. 커밋 안 된 변경으로 만든 바이너리인지도 go 가 +dirty 로 붙여 준다 — 버그 리포트에
+// 붙은 버전이 어느 소스인지 되짚을 수 있어야 하고, 그 판정을 우리가 다시 구현할 이유가 없다.
+func buildVersion() string {
+	bi, ok := debug.ReadBuildInfo()
+	if !ok {
+		// 모듈 모드로 빌드되지 않은 경우. 지금의 빌드 방식에서는 오지 않는다.
+		return "unknown"
+	}
+	return fmt.Sprintf("%s (%s %s/%s)", bi.Main.Version, bi.GoVersion, runtime.GOOS, runtime.GOARCH)
 }
 
 // apiDirs 는 매니페스트를 찾을 디렉토리를 가까운 것부터 나열한다.
