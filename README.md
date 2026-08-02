@@ -85,7 +85,26 @@ Error: unknown flag: --data                   ← body: 가 없는 명령엔 fla
 
 `apis/` 에 매니페스트 YAML(`.yaml` 또는 `.yml`)을 하나 더 떨어뜨리면 **재컴파일 없이** 새 API 명령이 생깁니다 ([ADR-0003](docs/adr/0003-dynamic-command-surface.md)).
 
-> 발견 경로는 아직 **현재 디렉토리의 `./apis` 뿐**입니다. 그래서 `go install` 로 받은 바이너리는 `apis/` 를 가진 디렉토리에서 실행해야 API 명령이 보입니다 — 다른 곳에서는 아무 말 없이 `greet`·`parse`·`generate` 만 나옵니다. 환경변수·설정 디렉토리·`--manifest` override 는 아직 없습니다(ADR-0003 이 범위로 남겨 둔 자리).
+매니페스트는 **두 곳**에서 찾습니다 — 현재 디렉토리의 `./apis` 와 유저 설정 디렉토리(`os.UserConfigDir()` 아래의 `cli-maker/apis`. Windows `%AppData%`, macOS `~/Library/Application Support`, Linux `$XDG_CONFIG_HOME` 또는 `~/.config`). 한쪽을 찾았다고 끝내지 않고 **둘 다 읽어 합칩니다** ([ADR-0013](docs/adr/0013-manifest-discovery-paths.md)).
+
+```
+$ cd ~/anywhere && cli-maker --help    # apis/ 가 없는 곳에서도
+  gh          gh API                   ← 설정 디렉토리에서
+
+$ cd ~/myproject && cli-maker --help
+  internal    internal API             ← ./apis/ 에서
+  gh          gh API                   ← 설정 디렉토리에서
+```
+
+이름이 겹치면 가까운 쪽(`./apis`)이 이기고, **가려진 쪽은 조용히 사라지지 않습니다.**
+
+```
+$ cli-maker gh --help                  # 양쪽에 gh 가 있을 때
+cli-maker: C:\Users\...\cli-maker\apis\gh.yaml 생략
+name "gh" 는 이미 쓰이고 있는 명령 이름이다    ← stderr
+```
+
+> 실행 파일 옆 경로·환경변수·`--manifest` override 는 아직 없습니다.
 
 매니페스트는 명령으로 등록되기 전에 검증을 통과해야 합니다. 문제가 있으면 그 파일만 빠지고 나머지는 그대로 동작합니다 ([ADR-0007](docs/adr/0007-load-time-validation.md)).
 
@@ -191,7 +210,7 @@ Go 1.26+ 필요.
 | **M9** ✅ | `generate` (코드 생성) | text/template, `//go:embed`, go/ast, 타입 별칭 |
 | **M10** ✅ | 요청 본문 (`--data`) | 값 vs 포인터, `io.Reader` 를 요청 쪽으로, chunked |
 | **M11** ✅ | OpenAPI 임포트 (`import`) | map 의 무순서, 부분 디코드, `yaml.Marshal` |
-| 이후 | 배포 | — |
+| **M12** 🚧 | 배포 — 발견 경로 ✅ · `--version` · 릴리스 | `os.UserConfigDir`, `debug.ReadBuildInfo`, `GOOS`/`GOARCH` |
 
 > 각 마일스톤에서 쌓은 이론·문법·겪은 함정은 [`docs/learn/`](docs/learn/) 에 개념별 지식베이스로 정리합니다 — "무엇을 배웠나"의 실증.
 
