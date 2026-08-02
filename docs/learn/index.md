@@ -54,6 +54,7 @@ cli-maker 를 만들며 쌓은 **Go·도구 지식**의 위키. 개념을 찾을
 - [[user-config-dir]] — OS 마다 다른 설정 자리, 만들어 주지도 이름 붙여 주지도 않는다, 환경을 조종하는 테스트는 OS 를 옮기면 깨진다
 - [[build-info]] — 버전은 코드가 아니라 도구가 박는다, pseudo-version 과 `+dirty`, `go run` 은 스탬핑하지 않는다
 - [[module-publishing]] — git 태그가 곧 발행, 되돌릴 수 없다, `@latest` 를 막는 캐시는 여러 층
+- [[cross-compilation]] — `GOOS`/`GOARCH` 둘이면 끝, `-trimpath` 는 경로를 지운다, worktree 에서는 버전이 안 박힌다
 
 ## 마일스톤 로그 (`milestones/`)
 

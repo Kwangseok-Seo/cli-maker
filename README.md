@@ -178,6 +178,15 @@ $ ./gh repo --owner spf13 --repo cobra -o compact
 
 ## 설치
 
+**바이너리** — [Releases](https://github.com/Kwangseok-Seo/cli-maker/releases) 에서 받아 풀고 `cli-maker` 를 PATH 에 둡니다. Go 가 필요 없습니다. linux·macOS·Windows 의 amd64/arm64 를 냅니다.
+
+```
+$ sha256sum -c checksums.txt        # 받은 것 검증
+cli-maker_v0.2.0_linux_amd64.tar.gz: OK
+```
+
+**Go 로** —
+
 ```
 go install github.com/Kwangseok-Seo/cli-maker@latest
 ```
@@ -217,7 +226,7 @@ Go 1.26+ 필요.
 | **M9** ✅ | `generate` (코드 생성) | text/template, `//go:embed`, go/ast, 타입 별칭 |
 | **M10** ✅ | 요청 본문 (`--data`) | 값 vs 포인터, `io.Reader` 를 요청 쪽으로, chunked |
 | **M11** ✅ | OpenAPI 임포트 (`import`) | map 의 무순서, 부분 디코드, `yaml.Marshal` |
-| **M12** 🚧 | 배포 — 발견 경로 ✅ · `--version` ✅ · v0.2.0 발행 ✅ · 릴리스 | `os.UserConfigDir`, `debug.ReadBuildInfo`, semver·proxy, `GOOS`/`GOARCH` |
+| **M12** 🚧 | 배포 — 발견 경로 ✅ · `--version` ✅ · v0.2.0 발행 ✅ · 바이너리 릴리스 ✅ · CI | `os.UserConfigDir`, `debug.ReadBuildInfo`, semver·proxy, `GOOS`/`GOARCH`·`-trimpath` |
 
 > 각 마일스톤에서 쌓은 이론·문법·겪은 함정은 [`docs/learn/`](docs/learn/) 에 개념별 지식베이스로 정리합니다 — "무엇을 배웠나"의 실증.
 
