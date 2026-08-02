@@ -15,6 +15,14 @@ var allowedMethods = map[string]bool{
 // 실행기가 실제로 처리하는 자리만 허용한다. header/body 는 아직 없으므로 받아 두고 무시하지 않는다.
 var allowedParamIn = map[string]bool{"path": true, "query": true}
 
+// SupportsParamIn 은 실행기가 처리하는 param 자리인지 답한다.
+//
+// 임포터(internal/openapi)가 "이 param 을 옮길 수 있나"를 우리에게 묻기 위한 문이다.
+// 목록을 저쪽에 복제하면, 여기가 header 를 받게 되는 날 임포터만 조용히 뒤처진다.
+func SupportsParamIn(in string) bool {
+	return allowedParamIn[in]
+}
+
 // Validate 는 매니페스트 하나만 보고 판정할 수 있는 문제를 모두 찾아 한꺼번에 돌려준다.
 // 하나 찾을 때마다 반환하지 않는 이유는, 유저가 매니페스트를 고치러 여러 번 왕복하지 않게 하기 위해서다.
 //
