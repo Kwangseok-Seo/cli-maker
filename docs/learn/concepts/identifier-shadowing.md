@@ -38,6 +38,27 @@ isTerminal := isTerminal(cmd.OutOrStdout())
 
 오른쪽은 아직 함수, 왼쪽부터는 변수다(`:=` 는 선언을 **끝낸 뒤** 스코프에 넣는다). 한 번만 부르면 돌아가므로 발견이 늦다. 애초에 `if isTerminal(cmd.OutOrStdout())` 로 바로 쓰면 변수가 필요 없다.
 
+## 겪은 함정 ③ — 루프 안에서 명명된 반환값을 `:=` 로
+
+```go
+func f() (warnings []string) {
+	for _, p := range items {
+		warnings := append(warnings, "…")   // 컴파일 OK, go vet OK
+		_ = warnings
+	}
+	return                                  // 언제나 nil
+}
+```
+
+```
+=  쓴 것: [뺐다: api_key 뺐다: x-trace] (len=2)
+:= 쓴 것: []                              (len=0)
+```
+
+함수 몸통 맨 위였다면 `:=` 가 *"no new variables on left side"* 로 막힌다. 그런데 **루프 몸통은 안쪽 블록**이라 "같은 이름의 새 지역변수"가 합법적으로 만들어지고, 루프가 끝나면 사라진다. 바깥 `warnings` 는 그대로 `nil`.
+
+증상이 "에러"가 아니라 **"아무 일도 안 일어남"** 이라 앞의 둘보다 찾기 어렵다. 누적할 때는 `=`.
+
 ## 왜 Go 는 이걸 막지 않나
 
 `nil`·`error` 조차 가릴 수 있는 건 언어 사양을 단순하게 유지하려는 선택이다. 예약어 목록이 짧을수록 컴파일러가 단순하고, universe 스코프는 "가장 바깥 블록"일 뿐이라 스코프 규칙이 하나로 통일된다.

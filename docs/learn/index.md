@@ -50,6 +50,7 @@ cli-maker 를 만들며 쌓은 **Go·도구 지식**의 위키. 개념을 찾을
 - [[testing-the-filesystem]] — `t.TempDir()` vs `testdata/`, OS 문구 대신 센티널, mutation testing 으로 pinning 확인
 - [[go-doc]] — 선언 위 주석이 문서, 별칭은 필드를 감춘다, 문서를 reflect+파서로 붙들기
 - [[absent-vs-empty]] — "안 줬다" vs "빈 것을 줬다", zero value 는 둘을 못 가른다, 표식은 값 밖에
+- [[partial-decoding]] — 남의 형식에서 쓰는 자리만, 오타도 같이 조용히 버려진다, 형식 게이트는 손으로
 
 ## 마일스톤 로그 (`milestones/`)
 
@@ -64,6 +65,7 @@ cli-maker 를 만들며 쌓은 **Go·도구 지식**의 위키. 개념을 찾을
 - [[M8]] — 테스트 (ADR 세 건을 실행 가능한 판정으로)
 - [[M9]] — `generate` (매니페스트가 독립 바이너리가 된다)
 - [[M10]] — 요청 본문 (`--data`, 보낸다고 광고만 하던 POST 를 닫는다)
+- [[M11]] — OpenAPI 임포트 (남의 명세를 읽어 매니페스트를 만든다)
 
 ## 최종 산출물 (예정)
 

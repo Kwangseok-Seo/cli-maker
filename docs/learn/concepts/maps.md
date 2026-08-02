@@ -64,11 +64,46 @@ for i, c := range m.Commands {
 
 `gh repo --owner` 와 `gh issues --owner` 가 공존해야 하므로 `seenParam` 은 안쪽에서 태어나야 한다. **변수의 수명이 곧 규칙의 적용 범위**다.
 
+## 순회 순서는 의도적으로 무작위다
+
+`range` 는 순서를 보장하지 않을 뿐 아니라 **매번 섞는다.** 같은 프로세스에서 같은 map 을 세 번 돈 결과다.
+
+```
+range #1 앞 4개: [/user/logout /user/{username} /pet /pet/findByTags]
+range #2 앞 4개: [/pet /pet/findByTags /pet/{petId} /pet/{petId}/uploadImage]
+range #3 앞 4개: [/pet/{petId}/uploadImage /store/order /store/order/{orderId} /user/createWithList]
+```
+
+우연히 정렬돼서 그걸 믿는 코드가 생기는 것을 막으려는 설계다. 순서가 필요하면 **키를 모아 정렬**한다.
+
+```go
+keys := make([]string, 0, len(m))   // 옛 관용구
+for k := range m {
+	keys = append(keys, k)
+}
+sort.Strings(keys)
+
+keys := slices.Sorted(maps.Keys(m))  // Go 1.23+ — 위 4줄이 한 줄
+```
+
+`maps.Keys` 가 돌려주는 것은 슬라이스가 아니라 **iterator**(`iter.Seq[string]`)다 — 값을 다 만들어 쌓아 두는 대신 "다음 것 줘"를 반복하는 함수다. `slices.Sorted` 가 그걸 받아 모으고 정렬한다.
+
+**더 나은 수는 애초에 map 을 안 받는 것이다.** OpenAPI 의 `paths./pet` 아래도 map(키가 `get`/`post`/…)이지만, 키의 가짓수가 HTTP 메서드로 정해져 있어 struct 로 받을 수 있다. 그러면 순회 순서가 **필드 선언 순서**로 고정돼 결정론이 공짜로 따라오고, 정렬해야 할 자리가 하나 줄어든다.
+
+```go
+type PathItem struct {
+	Get  *Operation `yaml:"get"`
+	Post *Operation `yaml:"post"`
+	…                              // 없는 메서드는 nil
+}
+```
+
 ## 겪은 함정
 
 - **누적자를 루프 안에서 만들었다.** M4 의 `BuildURL` 에서 `q := url.Values{}` 를 루프 안에 둬서 쿼리 누적자가 매 반복마다 새로 태어났다. 같은 실수를 `seen` 에서 반복하지 않으려면 "누적하는 것은 누적 구간 밖에서 태어난다"로 기억한다 — 위의 이중 루프는 그 규칙을 어긴 게 아니라, 누적 구간이 command 하나인 것이다.
 - map 은 **순회 순서가 무작위**다. 순서가 필요하면 리스트를 따로 든다 — 매니페스트 컬렉션을 map 이 아니라 리스트로 둔 이유가 그것이다([ADR-0002](../../adr/0002-manifest-collections-as-ordered-lists.md)).
+- **그 근거가 어디까지 덮는지는 따로 정해야 했다.** M11 의 임포터는 남의 Spec(`paths` 가 map)에서 명령을 만드는데, 여기서 "유저가 적은 순서"를 지키려면 struct 언마샬 대신 `yaml.Node` 로 문서를 걸어야 한다. 비용이 이익을 넘어 **사전순 정렬로 갔다** — ADR-0002 를 뒤집은 게 아니라 적용 범위를 확정한 것이다([ADR-0012](../../adr/0012-import-output-is-a-deterministic-draft.md)).
 
 ## 관련
 
-[[config-precedence]] · [[environment-variables]] · [[http-headers]] · [[variables]] · [[slices-and-args]]
+[[config-precedence]] · [[environment-variables]] · [[http-headers]] · [[variables]] · [[slices-and-args]] · [[partial-decoding]]

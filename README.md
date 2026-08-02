@@ -13,7 +13,7 @@
 
 ## 상태
 
-M10 완료 — 매니페스트로 만들어진 명령이 **실제 API 를 호출**하고, **환경변수의 토큰으로 인증**하며, **보는 사람에 맞춰 출력을 냅니다**. 이제 **요청 본문도 보낼 수 있고**, 그 약속들을 **테스트가 지키며**, 매니페스트를 **그 API 전용 독립 바이너리로 뽑아낼 수도** 있습니다.
+M11 완료 — 매니페스트로 만들어진 명령이 **실제 API 를 호출**하고, **환경변수의 토큰으로 인증**하며, **보는 사람에 맞춰 출력을 냅니다**. **요청 본문도 보낼 수 있고**, 그 약속들을 **테스트가 지키며**, 매니페스트를 **그 API 전용 독립 바이너리로 뽑아낼 수도** 있습니다. 이제 매니페스트를 손으로 쓰지 않고 **OpenAPI 명세에서 만들어 낼 수도** 있습니다.
 
 ```
 $ cli-maker gh --help
@@ -100,6 +100,40 @@ commands[2] "ping": 이름이 중복이다
 
 위 약속들은 문서로만 있지 않습니다. `go test ./...` 가 4xx 의 **출력 순서**(ADR-0005), 토큰이 없을 때의 **익명 전송**(ADR-0006), 터미널 여부에 따른 **기본 포맷**(ADR-0008)을 확인합니다. HTTP 는 목(mock) 없이 `httptest` 로 진짜 서버를 띄워, 서버가 실제로 받은 경로·쿼리·헤더로 판정합니다.
 
+## OpenAPI 명세에서 만들기
+
+`import` 는 OpenAPI 3.x 명세(**Spec**)를 읽어 매니페스트를 냅니다 ([ADR-0011](docs/adr/0011-importer-reads-five-places-directly.md), [ADR-0012](docs/adr/0012-import-output-is-a-deterministic-draft.md)). `.json` 도 `.yaml` 도 됩니다.
+
+```
+$ curl -sO https://petstore3.swagger.io/api/v3/openapi.json
+
+$ cli-maker import openapi.json --out apis/pstore.yaml \
+      --base-url https://petstore3.swagger.io/api/v3
+cli-maker: securityScheme [api_key petstore_auth] 를 옮기지 않았다 — auth 는 손으로 적어야 한다
+cli-maker: deletePet: param "api_key" 를 뺐다 — in "header" 는 지원하지 않는다   ← stderr
+생성: apis/pstore.yaml (명령 19개)
+
+$ cli-maker pstore getPetById --petId 1 -o compact
+{"id":1,"name":"Pet1","photoUrls":[…],"tags":[],"status":"available"}
+```
+
+**19 operation 이 전부 넘어오고 재컴파일은 없습니다** — 산출물이 매니페스트라, 런타임이 읽던 그대로 읽습니다.
+
+산출물은 **초안**입니다. 옮기지 못한 것은 빼고 stderr 에 한 줄씩 남깁니다 — 반쪽을 조용히 내보내면 유저는 요청이 나간 뒤에야 알게 되니까요. 명세 자체는 stdout 으로만 나가므로 `import spec.json --name pstore > apis/pstore.yaml` 도 안전합니다.
+
+| 자리 | 어떻게 되나 |
+|---|---|
+| `servers[0].url` 이 상대 URL (petstore 가 그렇다) | `--base-url` 로 받습니다. 없으면 에러 |
+| `paths` 가 map 이라 순서가 없음 | 경로를 **사전순**으로 냅니다 — 두 번 import 해도 같은 파일 |
+| `securitySchemes` (oauth2·apiKey) | 대응이 없어 `auth` 를 비워 두고 알립니다 |
+| `in: header` param | optional 이면 그것만 빼고, **required 면 그 명령을 통째로** 뺍니다 |
+| `requestBody.content` 후보가 여럿 | `application/json` 을 먼저, 없으면 사전순 첫 번째 |
+| Swagger **2.0** | 거부합니다 — 이름을 대고, 왜인지 함께 |
+
+이름은 `--name` > `--out` 파일명 > 에러 순으로 정합니다. `info.title` 은 쓰지 않습니다 — petstore 의 경우 `swagger-petstore-openapi-3-0` 이 되어 명령 이름이 못 됩니다.
+
+기존 파일은 **덮어쓰지 않고 거절합니다.** 손으로 이어 쓴 편집분을 두 번째 import 가 조용히 지우면 되돌릴 방법이 없기 때문입니다.
+
 ## 독립 바이너리로 뽑기
 
 `generate` 는 같은 매니페스트를 읽어, 실행하는 대신 **그 API 전용 CLI 의 Go 소스**를 냅니다 ([ADR-0009](docs/adr/0009-generated-cli-shape.md)).
@@ -156,7 +190,7 @@ Go 1.26+ 필요.
 | **M8** ✅ | 테스트 | table-driven test, httptest |
 | **M9** ✅ | `generate` (코드 생성) | text/template, `//go:embed`, go/ast, 타입 별칭 |
 | **M10** ✅ | 요청 본문 (`--data`) | 값 vs 포인터, `io.Reader` 를 요청 쪽으로, chunked |
-| **M11** | OpenAPI 임포트 | map 의 무순서, 부분 디코드, `yaml.Marshal` |
+| **M11** ✅ | OpenAPI 임포트 (`import`) | map 의 무순서, 부분 디코드, `yaml.Marshal` |
 | 이후 | 배포 | — |
 
 > 각 마일스톤에서 쌓은 이론·문법·겪은 함정은 [`docs/learn/`](docs/learn/) 에 개념별 지식베이스로 정리합니다 — "무엇을 배웠나"의 실증.

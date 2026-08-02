@@ -14,3 +14,5 @@
 | [0008](0008-output-format-defaults-to-tty.md) | 출력 포맷의 기본값은 stdout 이 터미널인지로 정한다 | accepted |
 | [0009](0009-generated-cli-shape.md) | 생성된 CLI 는 얇은 공개 façade 를 부르고, 명령 표면은 펼쳐서 낸다 | accepted |
 | [0010](0010-request-body-as-command-field.md) | 요청 본문은 Param 이 아니라 Command 의 선택적 필드다 | accepted |
+| [0011](0011-importer-reads-five-places-directly.md) | 임포터는 Spec 의 다섯 자리만 직접 읽는다 | accepted |
+| [0012](0012-import-output-is-a-deterministic-draft.md) | 임포트 산출물은 저자 순서를 버리고, 못 옮기는 것은 required 여부로 가른다 | accepted |

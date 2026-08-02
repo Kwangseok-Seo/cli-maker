@@ -22,25 +22,18 @@
 
 - **런타임 인터프리터**: 단일 바이너리가 매니페스트(데이터)를 런타임에 읽어 cobra 명령을 동적 생성. 새 API = 매니페스트 추가(재컴파일 없음). 근거·거부한 대안(코드 생성)은 `docs/adr/0001-runtime-interpreter-architecture.md`.
 - **CLI 프레임워크**: spf13/cobra (M1 에서 도입).
-- **입력 형식**: 커스텀 매니페스트(YAML). 스키마는 M1~M2 에서 확정. OpenAPI 임포트는 후속.
+- **입력 형식**: 커스텀 매니페스트(YAML). 스키마는 M1~M2 에서 확정.
 - **코드 생성(`generate`)**: M9 에서 얹었다. 매니페스트 → 독립 모듈(`main.go` + `go.mod`), 생성 코드는 공개 façade `clirun` 만 부른다. 근거·거부한 대안은 `docs/adr/0009-generated-cli-shape.md`.
+- **OpenAPI 임포트(`import`)**: M11 에서 얹었다. Spec → 매니페스트 YAML(초안). 라이브러리 없이 다섯 자리만 부분 디코드하고, 못 옮긴 것은 빼고 stderr 로 알린다. 근거는 `docs/adr/0011-*`·`0012-*`. **Spec 은 런타임이 읽지 않는다** — 임포터만 읽는다.
 
 ## 레이아웃 (자라나는 대로 추가 — 빈 디렉토리 선점 금지)
 
-- `main.go` — 얇은 진입점.
-- `cmd/` — cobra 명령 정의 (M1~).
-- `internal/` — 내부 구현(외부 임포트 불가). `internal/manifest/`(스키마·파싱), `internal/executor/`(HTTP 실행기), `internal/generate/`(템플릿·코드 생성) 등 (M2~).
+- `main.go` — 진입점 + cobra 명령 정의. (`cmd/` 를 두려던 초안이 있었으나 실제로는 만들지 않았다. 명령이 늘어 읽기 힘들어지면 그때 나눈다 — 빈 디렉토리 선점 금지.) 테스트가 필요한 명령은 `newXxxCmd() *cobra.Command` 생성자로 뺀다(`newImportCmd`) — flag 변수가 함수 안에서 태어나야 여러 번 실행해도 값이 안 남는다.
+- `internal/` — 내부 구현(외부 임포트 불가). `internal/manifest/`(스키마·파싱·검증), `internal/cli/`(매니페스트→명령 등록), `internal/executor/`(HTTP 실행기), `internal/format/`(출력 포맷), `internal/generate/`(템플릿·코드 생성), `internal/openapi/`(Spec 파싱·매니페스트 변환) (M2~).
 - `clirun/` — **공개 façade**. 생성된 CLI 가 부르는 유일한 표면(타입 별칭 + `Run`). 여기 있는 것만 외부 계약이므로 넓히기 전에 한 번 더 생각한다 (M9~).
 - `apis/` — 유저 매니페스트. `example.yaml` = 초안 스키마 스케치.
 - `docs/adr/` — 아키텍처 결정 기록.
 - `CONTEXT.md` — 도메인 용어집(glossary 전용).
-
-## 명령
-
-- 빌드: `go build ./...`
-- 실행: `go run .`
-- 테스트: `go test ./...`
-- 포맷/정적검사: `gofmt -l .`, `go vet ./...`
 
 ## 문서 권위
 
