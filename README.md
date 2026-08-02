@@ -200,3 +200,5 @@ Go 1.26+ 필요.
 MIT — [LICENSE](LICENSE). `generate` 가 낸 소스는 당신 것입니다(위 참조).
 
 의존성은 전부 permissive 이지만 MIT 는 아닙니다 — cobra·mousetrap Apache-2.0, pflag BSD-3-Clause, yaml.v3 MIT+Apache-2.0. 소스로 쓸 때는 추가 의무가 없고, **바이너리를 배포할 때** 그쪽 고지가 필요합니다.
+
+테스트 fixture `internal/openapi/testdata/petstore.json` 은 [Swagger Petstore](https://petstore3.swagger.io/api/v3/openapi.json) 명세 원본(v1.0.27)이며, 그 문서가 `info.license` 에 스스로 밝힌 대로 Apache-2.0 입니다 — 테스트에서만 읽고 바이너리에는 들어가지 않습니다.
