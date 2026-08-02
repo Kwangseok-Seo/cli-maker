@@ -182,7 +182,16 @@ $ ./gh repo --owner spf13 --repo cobra -o compact
 go install github.com/Kwangseok-Seo/cli-maker@latest
 ```
 
-Go 1.26+ 필요. 위의 발견 경로 제한 때문에, 설치한 바이너리는 `apis/` 를 가진 디렉토리에서 실행해야 API 명령이 보입니다.
+Go 1.26+ 필요. 설치한 뒤 무엇을 받았는지는 `--version` 으로 확인합니다.
+
+```
+$ cli-maker --version
+cli-maker v0.1.0 (go1.26.3 windows/amd64)
+```
+
+버전 문자열은 소스 어디에도 적혀 있지 않습니다 — go 도구가 빌드할 때 박아 둔 것을 읽습니다. 그래서 저장소를 클론해 직접 빌드하면 태그 대신 커밋을 가리키는 pseudo-version 이 나오고, 커밋 안 된 변경이 섞여 있으면 뒤에 `+dirty` 가 붙습니다.
+
+> 지금 `@latest` 가 가리키는 것은 **v0.1.0** 입니다 — M10 의 `--data`, M11 의 `import`, 위의 발견 경로 확장, 그리고 `--version` 자체가 아직 태그되지 않았습니다. 그때까지는 클론해서 `go build` 하세요.
 
 ## 개발
 
@@ -210,7 +219,7 @@ Go 1.26+ 필요.
 | **M9** ✅ | `generate` (코드 생성) | text/template, `//go:embed`, go/ast, 타입 별칭 |
 | **M10** ✅ | 요청 본문 (`--data`) | 값 vs 포인터, `io.Reader` 를 요청 쪽으로, chunked |
 | **M11** ✅ | OpenAPI 임포트 (`import`) | map 의 무순서, 부분 디코드, `yaml.Marshal` |
-| **M12** 🚧 | 배포 — 발견 경로 ✅ · `--version` · 릴리스 | `os.UserConfigDir`, `debug.ReadBuildInfo`, `GOOS`/`GOARCH` |
+| **M12** 🚧 | 배포 — 발견 경로 ✅ · `--version` ✅ · 릴리스 | `os.UserConfigDir`, `debug.ReadBuildInfo`, `GOOS`/`GOARCH` |
 
 > 각 마일스톤에서 쌓은 이론·문법·겪은 함정은 [`docs/learn/`](docs/learn/) 에 개념별 지식베이스로 정리합니다 — "무엇을 배웠나"의 실증.
 

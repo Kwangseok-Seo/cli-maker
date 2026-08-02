@@ -52,6 +52,7 @@ cli-maker 를 만들며 쌓은 **Go·도구 지식**의 위키. 개념을 찾을
 - [[absent-vs-empty]] — "안 줬다" vs "빈 것을 줬다", zero value 는 둘을 못 가른다, 표식은 값 밖에
 - [[partial-decoding]] — 남의 형식에서 쓰는 자리만, 오타도 같이 조용히 버려진다, 형식 게이트는 손으로
 - [[user-config-dir]] — OS 마다 다른 설정 자리, 만들어 주지도 이름 붙여 주지도 않는다, 환경을 조종하는 테스트는 OS 를 옮기면 깨진다
+- [[build-info]] — 버전은 코드가 아니라 도구가 박는다, pseudo-version 과 `+dirty`, `go run` 은 스탬핑하지 않는다
 
 ## 마일스톤 로그 (`milestones/`)
 
