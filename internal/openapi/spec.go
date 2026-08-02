@@ -47,6 +47,12 @@ type SecurityScheme struct {
 // Spec 에선 이것도 map(키가 메서드 이름)이지만 struct 로 받는다. 키의 가짓수가 HTTP
 // 메서드로 정해져 있어서 미리 칸을 팔 수 있고, 그러면 순회 순서가 **필드 선언 순서**로
 // 고정돼 결정론이 공짜로 따라온다. 무순서 문제가 남는 곳은 Paths 하나뿐이 된다.
+//
+// 이 일곱 칸은 manifest 의 allowedMethods 를 손으로 옮긴 것이다. struct 필드라
+// 실행 시점에 물어볼 수 없어서 복제를 피할 방법이 없다 — SupportsParamIn 처럼
+// manifest 에 물어보는 수를 여기엔 쓸 수 없다. 한쪽이 늘면 다른 쪽도 손으로 맞춰야
+// 한다: 여기 없는 메서드는 임포터가 조용히 버리고, 반대로 여기 있는데
+// allowedMethods 에 없는 메서드를 넣으면 Validate 가 그 명령을 거절한다.
 type PathItem struct {
 	Get     *Operation `yaml:"get"`
 	Post    *Operation `yaml:"post"`
