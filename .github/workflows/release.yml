@@ -22,9 +22,16 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      # action 은 태그로 참조한다 — 태그는 옮길 수 있으므로 저자를 신뢰한다는 뜻이다.
+      # 공급망을 좁히려면 40자리 커밋 SHA 로 고정한다.
+      - uses: actions/checkout@v7
+        with:
+          # 기본값(얕은 체크아웃)이면 태그가 안 와서 Go 가 "태그 없는 repo" 로 보고
+          # v0.0.0-... 을 만든다 (실측: run 30748249635). 버전 계산에 직전 태그와
+          # 거기까지의 거리가 필요하므로 전체 히스토리를 가져온다.
+          fetch-depth: 0
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           # 버전을 여기 적지 않고 go.mod 에게 묻는다. 적어 두면 go.mod 를 올릴 때
           # 이 파일이 조용히 뒤처진다.
@@ -63,12 +70,16 @@ jobs:
           # 러너가 linux/amd64 이므로 그 바이너리는 여기서 실행된다.
           V=$(./stage/linux_amd64/cli-maker --version)
           echo "$V"
-          # (devel) 이면 vcs 스탬핑이 안 된 것이다 — M12d 에서 git worktree 로 빌드했다가
-          # 겪었다. 얕은 체크아웃에서도 같은 일이 나는지는 돌려 봐야 알고, 나면 여기서
-          # 멈춰야 한다. 버전 없는 바이너리가 릴리스에 붙는 것보다 실패가 낫다.
+          # 두 가지 실패를 가른다. (devel) 은 vcs 스탬핑 자체가 없는 것 — M12d 에서
+          # git worktree 로 빌드했을 때 그랬다. v0.0.0- 은 스탬핑은 됐는데 태그를 못 본
+          # 것이다 — 얕은 체크아웃에서 실제로 나왔고(run 30748249635), (devel) 만 보던
+          # 첫 판이 이걸 통과시켰다. 버전이 틀린 바이너리가 릴리스에 붙는 것보다 실패가 낫다.
           case "$V" in
             *'(devel)'*)
-              echo "::error::버전이 안 박혔다 — checkout 이 태그를 안 가져왔을 수 있다 (fetch-depth)"
+              echo "::error::vcs 스탬핑이 안 됐다 — .git 이 없거나 worktree 일 수 있다"
+              exit 1 ;;
+            *' v0.0.0-'*)
+              echo "::error::태그를 못 봤다 — checkout 의 fetch-depth 를 확인하라"
               exit 1 ;;
           esac
           # 태그로 트리거됐다면 태그 이름과 정확히 같아야 한다.
@@ -89,7 +100,7 @@ jobs:
             *) echo "::error::실행 비트가 없다: $mode"; exit 1 ;;
           esac
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: dist
           path: dist/
